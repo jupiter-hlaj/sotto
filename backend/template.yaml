@@ -97,7 +97,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Environment:
@@ -145,7 +146,8 @@ Resources:
       MemorySize: 512
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Environment:
@@ -191,7 +193,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Policies:
@@ -215,7 +218,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Environment:
@@ -260,7 +264,8 @@ Resources:
       MemorySize: 512
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Environment:
@@ -401,7 +406,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Environment:
@@ -422,7 +428,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Policies:
@@ -440,7 +447,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Environment:
@@ -467,7 +475,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Environment:
@@ -504,7 +513,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Policies:
@@ -541,7 +551,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Environment:
@@ -581,7 +592,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Policies:
@@ -606,7 +618,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Policies:
@@ -655,7 +668,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Policies:
@@ -686,7 +700,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Policies:
@@ -719,7 +734,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Policies:
@@ -746,7 +762,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Policies:
@@ -775,7 +792,8 @@ Resources:
       MemorySize: 128
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Events:
@@ -799,7 +817,8 @@ Resources:
       MemorySize: 256
       AutoPublishAlias: live
       DeploymentPreference:
-        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Enabled: !If [IsProd, true, false]
+        Type: Canary10Percent5Minutes
         Alarms:
           - !Ref ErrorRateAlarm
       Policies:
