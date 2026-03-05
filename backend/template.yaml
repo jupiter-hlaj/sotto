@@ -1442,7 +1442,6 @@ Resources:
 
   ErrorRateAlarm:
     Type: AWS::CloudWatch::Alarm
-    Condition: IsProd
     Properties:
       AlarmName: !Sub sotto-error-rate-${Environment}
       AlarmDescription: Lambda error rate > 1% for 5 minutes across all functions
