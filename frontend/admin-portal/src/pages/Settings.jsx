@@ -80,7 +80,7 @@ export default function Settings() {
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-4">
+      <form onSubmit={handleSubmit} autoComplete="off" className="bg-white shadow rounded-lg p-6 space-y-4">
         {error && <p className="text-red-600 text-sm">{error}</p>}
         {message && <p className="text-green-600 text-sm">{message}</p>}
 
@@ -113,6 +113,7 @@ export default function Settings() {
               <label className="block text-sm font-medium mb-1">Twilio Account SID</label>
               <input
                 type="text"
+                autoComplete="off"
                 value={form.twilio_account_sid}
                 onChange={update("twilio_account_sid")}
                 placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -123,6 +124,7 @@ export default function Settings() {
               <label className="block text-sm font-medium mb-1">Twilio Phone Number</label>
               <input
                 type="text"
+                autoComplete="off"
                 value={form.twilio_phone_number}
                 onChange={update("twilio_phone_number")}
                 placeholder="+15551234567"
@@ -133,6 +135,7 @@ export default function Settings() {
               <label className="block text-sm font-medium mb-1">Twilio Auth Token</label>
               <input
                 type="password"
+                autoComplete="new-password"
                 value={form.twilio_auth_token}
                 onChange={update("twilio_auth_token")}
                 placeholder="Enter to update (stored in Secrets Manager)"
