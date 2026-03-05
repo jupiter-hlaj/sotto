@@ -32,8 +32,13 @@ jobs:
         run: |
           sam deploy \
             --stack-name sotto-dev \
-            --s3-bucket sotto-artifacts-${{ secrets.AWS_ACCOUNT_ID }}-dev \
-            --parameter-overrides Environment=dev LogLevel=DEBUG \
+            --s3-bucket sotto-sam-${{ secrets.AWS_ACCOUNT_ID }}-dev \
+            --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
+            --parameter-overrides \
+              Environment=dev \
+              LogLevel=DEBUG \
+              CognitoAdminEmail=jupiter.hlaj@gmail.com \
+              SnsAlertEmail=jupiter.hlaj@gmail.com \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
             --region ${{ secrets.AWS_REGION }}

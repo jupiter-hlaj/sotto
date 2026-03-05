@@ -4,9 +4,10 @@
 #   sam build && sam deploy --config-env prod
 #
 # Bootstrap (first deploy only):
-#   1. Create the artifacts bucket manually:
-#        aws s3 mb s3://sotto-artifacts-821891894512-dev --region us-east-1
-#        aws s3 mb s3://sotto-artifacts-821891894512-prod --region us-east-1
+#   1. Create the SAM deployment bucket manually:
+#        aws s3 mb s3://sotto-sam-821891894512-dev --region us-east-1
+#        aws s3 mb s3://sotto-sam-821891894512-prod --region us-east-1
+#      NOTE: sotto-artifacts-{account}-{env} is managed by CloudFormation (do not create manually)
 #   2. Replace 821891894512 in the s3_bucket lines below with your AWS account ID.
 #   3. Run: sam deploy --config-env dev --guided   (first time only, to confirm)
 #   Subsequent deploys: sam deploy --config-env dev
@@ -40,8 +41,7 @@ parallel = true
 [dev.deploy.parameters]
 stack_name            = "sotto-dev"
 region                = "us-east-1"
-# Replace 821891894512 with your AWS account ID (bootstrap step)
-s3_bucket             = "sotto-artifacts-821891894512-dev"
+s3_bucket             = "sotto-sam-821891894512-dev"
 s3_prefix             = "sotto-dev"
 capabilities          = "CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND"
 confirm_changeset     = false
@@ -49,7 +49,8 @@ fail_on_empty_changeset = false
 parameter_overrides   = [
   "Environment=dev",
   "LogLevel=DEBUG",
-  "CognitoAdminEmail=jupiter.hlaj@gmail.com"
+  "CognitoAdminEmail=jupiter.hlaj@gmail.com",
+  "SnsAlertEmail=jupiter.hlaj@gmail.com"
 ]
 
 # =========================================================
@@ -66,8 +67,7 @@ parallel = true
 [prod.deploy.parameters]
 stack_name            = "sotto-prod"
 region                = "us-east-1"
-# Replace 821891894512 with your AWS account ID (bootstrap step)
-s3_bucket             = "sotto-artifacts-821891894512-prod"
+s3_bucket             = "sotto-sam-821891894512-prod"
 s3_prefix             = "sotto-prod"
 capabilities          = "CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND"
 confirm_changeset     = true
@@ -75,5 +75,6 @@ fail_on_empty_changeset = false
 parameter_overrides   = [
   "Environment=prod",
   "LogLevel=INFO",
-  "CognitoAdminEmail=admin@example.com"
+  "CognitoAdminEmail=jupiter.hlaj@gmail.com",
+  "SnsAlertEmail=jupiter.hlaj@gmail.com"
 ]
