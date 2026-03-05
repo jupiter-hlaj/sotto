@@ -33,7 +33,7 @@ Conditions:
 Globals:
   Function:
     Runtime: python3.13
-    Architectures: [arm64]
+    Architectures: [x86_64]
     MemorySize: 256
     Timeout: 30
     Tracing: Active
@@ -758,7 +758,7 @@ Resources:
       CompatibleRuntimes:
         - python3.13
       CompatibleArchitectures:
-        - arm64
+        - x86_64
       RetentionPolicy: Retain
     Metadata:
       BuildMethod: python3.13

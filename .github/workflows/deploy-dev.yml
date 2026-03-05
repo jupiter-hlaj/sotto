@@ -26,7 +26,7 @@ jobs:
         with: { python-version: '3.13' }
 
       - name: SAM Build
-        run: sam build --use-container --template backend/template.yaml
+        run: sam build --template backend/template.yaml
 
       - name: SAM Deploy (dev)
         run: |
