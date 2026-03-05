@@ -87,8 +87,6 @@ Resources:
         DefaultAuthorizer: CognitoJwtAuthorizer
         Authorizers:
           CognitoJwtAuthorizer:
-            AuthorizationScopes:
-              - openid
             IdentitySource: $request.header.Authorization
             JwtConfiguration:
               issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
