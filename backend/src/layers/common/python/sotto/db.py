@@ -73,7 +73,7 @@ def list_tenants_by_tier(deployment_tier: str) -> list[dict]:
     """Query status-index to find tenants, then filter by deployment_tier."""
     logger.debug("DynamoDB list_tenants_by_tier", extra={"table": TENANTS_TABLE, "deployment_tier": deployment_tier, "operation": "Scan"})
     resp = _table(TENANTS_TABLE).scan(
-        FilterExpression=Key("deployment_tier").eq(deployment_tier),
+        FilterExpression=Attr("deployment_tier").eq(deployment_tier),
     )
     return resp.get("Items", [])
 

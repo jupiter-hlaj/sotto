@@ -303,9 +303,9 @@ def _download_and_upload_recording(
 def _build_provider_auth(provider: str, creds: dict):
     """Build requests auth tuple for provider recording download."""
     if provider == "twilio":
-        return (creds.get("account_sid", ""), creds.get("token", ""))
+        return (creds.get("account_sid", ""), creds.get("auth_token") or creds.get("token", ""))
     # Other providers: use bearer token via header (requests auth tuple)
-    token = creds.get("token", "")
+    token = creds.get("token") or creds.get("auth_token", "")
     if token:
         return _BearerAuth(token)
     return None

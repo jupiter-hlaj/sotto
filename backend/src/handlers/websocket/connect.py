@@ -131,8 +131,8 @@ def _handle_connect(event: dict, start_time: float) -> dict:
 
     logger.debug("JWT validated", extra={"connection_id": connection_id})
 
-    # Extract agent_id (sub) and tenant_id from claims
-    agent_id = claims.get("sub", "")
+    # Extract agent_id and tenant_id from claims
+    agent_id = claims.get("custom:agent_id") or claims.get("sub", "")
     tenant_id = claims.get("custom:tenant_id", "")
 
     if not agent_id or not tenant_id:

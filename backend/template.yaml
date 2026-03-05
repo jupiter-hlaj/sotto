@@ -557,6 +557,12 @@ Resources:
                 - cognito-idp:AdminAddUserToGroup
               Resource: !GetAtt UserPool.Arn
       Events:
+        List:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/agents
+            Method: GET
         Invite:
           Type: HttpApi
           Properties:
@@ -694,6 +700,12 @@ Resources:
           Properties:
             ApiId: !Ref SottoHttpApi
             Path: /calls/{call_id}
+            Method: GET
+        RecordingUrl:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /calls/{call_id}/recording-url
             Method: GET
 
   # 6.14 NotesHandler — PUT /calls/{call_id}/notes (Agent JWT)

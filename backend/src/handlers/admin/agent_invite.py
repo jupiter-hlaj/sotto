@@ -45,12 +45,30 @@ def handler(event: dict, context: LambdaContext) -> dict:
     )
 
     try:
+        route_key = event.get("routeKey", "")
+        if route_key == "GET /admin/agents":
+            return _handle_list(event, start_time)
         return _handle_invite(event, start_time)
     except Exception:
         logger.exception("Unhandled error in agent invite")
         duration_ms = int((time.time() - start_time) * 1000)
         logger.debug("Handler completed", extra={"duration_ms": duration_ms, "result_status": "error"})
         return _response(500, {"error": "Internal server error"})
+
+
+def _handle_list(event: dict, start_time: float) -> dict:
+    tenant_id = _extract_tenant_id(event)
+    if not tenant_id:
+        duration_ms = int((time.time() - start_time) * 1000)
+        logger.debug("Handler completed", extra={"duration_ms": duration_ms, "result_status": "unauthorized"})
+        return _response(401, {"error": "Missing tenant_id in claims"})
+
+    logger.debug("Listing agents", extra={"tenant_id": tenant_id})
+    agents = db.list_agents(tenant_id)
+
+    duration_ms = int((time.time() - start_time) * 1000)
+    logger.debug("Handler completed", extra={"duration_ms": duration_ms, "result_status": "ok", "count": len(agents)})
+    return _response(200, {"agents": agents})
 
 
 def _handle_invite(event: dict, start_time: float) -> dict:

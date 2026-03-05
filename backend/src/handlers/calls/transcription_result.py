@@ -124,7 +124,6 @@ def _find_call_by_id(call_id: str) -> dict | None:
     from boto3.dynamodb.conditions import Attr
     resp = table.scan(
         FilterExpression=Attr("call_id").eq(call_id),
-        Limit=1,
     )
     items = resp.get("Items", [])
     return items[0] if items else None
