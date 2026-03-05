@@ -1,0 +1,79 @@
+# Sotto SAM deployment configuration
+# Usage:
+#   sam build && sam deploy --config-env dev
+#   sam build && sam deploy --config-env prod
+#
+# Bootstrap (first deploy only):
+#   1. Create the artifacts bucket manually:
+#        aws s3 mb s3://sotto-artifacts-821891894512-dev --region us-east-1
+#        aws s3 mb s3://sotto-artifacts-821891894512-prod --region us-east-1
+#   2. Replace 821891894512 in the s3_bucket lines below with your AWS account ID.
+#   3. Run: sam deploy --config-env dev --guided   (first time only, to confirm)
+#   Subsequent deploys: sam deploy --config-env dev
+
+version = 0.1
+
+# =========================================================
+# Shared build defaults
+# =========================================================
+[default.global.parameters]
+region = "us-east-1"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+# =========================================================
+# Dev environment
+# =========================================================
+[dev.global.parameters]
+stack_name = "sotto-dev"
+region    = "us-east-1"
+
+[dev.build.parameters]
+cached   = true
+parallel = true
+
+[dev.deploy.parameters]
+stack_name            = "sotto-dev"
+region                = "us-east-1"
+# Replace 821891894512 with your AWS account ID (bootstrap step)
+s3_bucket             = "sotto-artifacts-821891894512-dev"
+s3_prefix             = "sotto-dev"
+capabilities          = "CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND"
+confirm_changeset     = false
+fail_on_empty_changeset = false
+parameter_overrides   = [
+  "Environment=dev",
+  "LogLevel=DEBUG",
+  "CognitoAdminEmail=jupiter.hlaj@gmail.com"
+]
+
+# =========================================================
+# Prod environment
+# =========================================================
+[prod.global.parameters]
+stack_name = "sotto-prod"
+region    = "us-east-1"
+
+[prod.build.parameters]
+cached   = true
+parallel = true
+
+[prod.deploy.parameters]
+stack_name            = "sotto-prod"
+region                = "us-east-1"
+# Replace 821891894512 with your AWS account ID (bootstrap step)
+s3_bucket             = "sotto-artifacts-821891894512-prod"
+s3_prefix             = "sotto-prod"
+capabilities          = "CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND"
+confirm_changeset     = true
+fail_on_empty_changeset = false
+parameter_overrides   = [
+  "Environment=prod",
+  "LogLevel=INFO",
+  "CognitoAdminEmail=admin@example.com"
+]

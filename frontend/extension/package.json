@@ -1,0 +1,13 @@
+{
+  "name": "sotto-cockpit",
+  "version": "1.0.0",
+  "description": "Cockpit — AI Call Intelligence Chrome Extension",
+  "private": true,
+  "scripts": {
+    "build": "mkdir -p src/vendor && cp node_modules/amazon-cognito-identity-js/dist/amazon-cognito-identity.min.js src/vendor/",
+    "postinstall": "npm run build"
+  },
+  "dependencies": {
+    "amazon-cognito-identity-js": "^6.3.12"
+  }
+}

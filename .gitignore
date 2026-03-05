@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+.pytest_cache/
+
+# SAM / AWS
+.aws-sam/
+samconfig.toml.bak
+
+# Node
+node_modules/
+frontend/admin-portal/dist/
+frontend/extension/dist/
+
+# macOS
+.DS_Store
+
+# Secrets / env
+.env
+*.env.local

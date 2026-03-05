@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sotto — AI Call Intelligence Platform</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --surface3: #30363d;
+  --border: rgba(255,255,255,0.08);
+  --blue: #58a6ff;
+  --blue-dim: rgba(88,166,255,0.15);
+  --emerald: #3fb950;
+  --emerald-dim: rgba(63,185,80,0.15);
+  --amber: #d29922;
+  --amber-dim: rgba(210,153,34,0.15);
+  --purple: #bc8cff;
+  --purple-dim: rgba(188,140,255,0.15);
+  --red: #f85149;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --text-dim: #484f58;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── GRID BACKGROUND ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(88,166,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(88,166,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  background: rgba(13,17,23,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-logo {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+.nav-logo span { color: var(--blue); }
+.nav-links {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+}
+.nav-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.nav-links a:hover {
+  color: var(--text);
+  background: var(--surface2);
+}
+.nav-badge {
+  font-size: 10px;
+  background: var(--blue-dim);
+  color: var(--blue);
+  border: 1px solid rgba(88,166,255,0.3);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+/* ── SECTIONS ── */
+section {
+  position: relative;
+  z-index: 1;
+  padding: 80px 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+section.full-width {
+  max-width: none;
+  padding: 80px 0;
+}
+.section-divider {
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 1px;
+  background: var(--border);
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 10px;
+}
+h2.section-title {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  color: var(--text);
+  margin-bottom: 12px;
+  line-height: 1.2;
+}
+p.section-desc {
+  font-size: 16px;
+  color: var(--text-muted);
+  max-width: 560px;
+  margin-bottom: 48px;
+}
+
+/* ── HERO ── */
+#hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 100px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 48px;
+  padding-right: 48px;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--blue);
+  background: var(--blue-dim);
+  border: 1px solid rgba(88,166,255,0.25);
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-bottom: 28px;
+}
+.hero-tag .pulse {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+
+#hero h1 {
+  font-size: 64px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin-bottom: 20px;
+  max-width: 800px;
+}
+#hero h1 .highlight {
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+#hero p {
+  font-size: 18px;
+  color: var(--text-muted);
+  max-width: 580px;
+  margin-bottom: 48px;
+  line-height: 1.7;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 0;
+  margin-bottom: 48px;
+}
+.hero-stat {
+  padding: 20px 32px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.hero-stat:first-child { border-radius: 10px 0 0 10px; }
+.hero-stat:last-child { border-radius: 0 10px 10px 0; border-left: none; }
+.hero-stat:not(:first-child):not(:last-child) { border-left: none; }
+.hero-stat .num {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--emerald);
+  display: block;
+  letter-spacing: -1px;
+}
+.hero-stat .lbl {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.btn-primary {
+  background: var(--blue);
+  color: #0d1117;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 11px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+}
+.btn-primary:hover { background: #79bcff; transform: translateY(-1px); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 11px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--surface3); background: var(--surface2); }
+
+/* ── ARCHITECTURE ── */
+.arch-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.arch-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 0;
+}
+
+.arch-layer-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: right;
+  padding-right: 20px;
+}
+
+.arch-nodes {
+  border-left: 1px solid var(--border);
+  padding: 12px 0 12px 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.arch-node {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  min-width: 90px;
+  position: relative;
+}
+.arch-node:hover { transform: translateY(-2px); border-color: var(--blue); }
+.arch-node .n-icon { font-size: 16px; display: block; margin-bottom: 3px; }
+.arch-node .n-name { font-size: 11px; font-weight: 700; color: var(--text); display: block; }
+.arch-node .n-sub { font-size: 9px; color: var(--text-muted); display: block; margin-top: 1px; }
+.arch-node.blue { border-color: rgba(88,166,255,0.4); background: var(--blue-dim); }
+.arch-node.emerald { border-color: rgba(63,185,80,0.4); background: var(--emerald-dim); }
+.arch-node.amber { border-color: rgba(210,153,34,0.4); background: var(--amber-dim); }
+.arch-node.purple { border-color: rgba(188,140,255,0.4); background: var(--purple-dim); }
+.arch-node.wide { min-width: 200px; }
+
+.arch-sep {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+}
+.arch-sep-line {
+  border-left: 1px solid var(--border);
+  margin-left: 0;
+  padding-left: 28px;
+  padding: 4px 0 4px 28px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.arch-dot-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 28px;
+  position: relative;
+  width: 2px;
+}
+.arch-dot-flow::before {
+  content: '';
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--blue), var(--emerald));
+  opacity: 0.4;
+}
+.arch-arrow-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.arch-sep-inner {
+  height: 2px;
+  margin: 0;
+  background: linear-gradient(to right, var(--blue-dim), var(--emerald-dim));
+}
+
+/* ── CALL ROUTING ── */
+.routing-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 32px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  width: fit-content;
+}
+.routing-tab {
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: transparent;
+}
+.routing-tab.active {
+  background: var(--blue);
+  color: #0d1117;
+}
+.routing-tab:not(.active):hover { background: var(--surface2); color: var(--text); }
+
+.routing-panel { display: none; }
+.routing-panel.active { display: block; }
+
+.routing-diagram {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+}
+
+.flow-chain {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  row-gap: 16px;
+}
+.flow-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: center;
+  min-width: 110px;
+  transition: all 0.3s;
+}
+.flow-box.highlight { border-color: var(--emerald); background: var(--emerald-dim); }
+.flow-box.highlight-blue { border-color: var(--blue); background: var(--blue-dim); }
+.flow-box .f-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+.flow-box .f-name { font-size: 11px; font-weight: 700; color: var(--text); }
+.flow-box .f-sub { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
+.flow-arrow {
+  font-size: 16px;
+  color: var(--text-dim);
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+.flow-arrow.colored { color: var(--blue); }
+
+.routing-note {
+  margin-top: 20px;
+  background: var(--amber-dim);
+  border: 1px solid rgba(210,153,34,0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.routing-note .icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── PROVIDER ADAPTER ── */
+.adapter-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.provider-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.provider-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  width: 100%;
+}
+.provider-btn:hover { border-color: var(--surface3); color: var(--text); background: var(--surface2); }
+.provider-btn.active { border-color: var(--blue); background: var(--blue-dim); color: var(--blue); }
+.provider-btn .p-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.provider-btn .p-badge {
+  margin-left: auto;
+  font-size: 8px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+.p-badge.mvp { background: var(--emerald); color: #0d1117; }
+.p-badge.soon { background: var(--surface3); color: var(--text-muted); }
+
+.code-block {
+  background: #010409;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.code-header {
+  background: var(--surface);
+  padding: 8px 14px;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.code-header .badge-label {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+.badge-red { background: rgba(248,81,73,0.2); color: #f85149; }
+.badge-green { background: var(--emerald-dim); color: var(--emerald); }
+code {
+  display: block;
+  padding: 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.8;
+  white-space: pre;
+}
+.c-comment { color: #484f58; }
+.c-key { color: #58a6ff; }
+.c-str { color: #a5d6ff; }
+.c-val { color: #3fb950; }
+.c-bracket { color: #e6edf3; }
+
+/* ── COCKPIT SIMULATOR ── */
+#simulator {
+  max-width: none;
+  padding: 80px 48px;
+}
+.sim-inner { max-width: 1200px; margin: 0 auto; }
+.sim-header { margin-bottom: 40px; }
+
+.sim-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+  align-items: center;
+}
+.sim-state-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 6px;
+}
+
+.cockpit-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  height: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+/* Epic pane */
+.epic-pane {
+  background: #f0f4f8;
+  display: flex;
+  flex-direction: column;
+}
+.epic-bar {
+  background: #2d3748;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 6px;
+}
+.epic-bar .tb-dot { width: 10px; height: 10px; border-radius: 50%; }
+.epic-bar .tb-url {
+  margin-left: 10px;
+  background: #4a5568;
+  color: #a0aec0;
+  font-size: 10px;
+  padding: 3px 12px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+.epic-body { padding: 20px; flex: 1; overflow: auto; }
+.epic-body h3 { font-size: 15px; font-weight: 700; color: #1a202c; margin-bottom: 16px; }
+.epic-field {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+.epic-field label { font-size: 9px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px; }
+.epic-field span { font-size: 13px; color: #1a202c; font-weight: 600; }
+.epic-injected {
+  background: #ebf8ff;
+  border: 1px solid #90cdf4;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.epic-injected.visible { opacity: 1; }
+.epic-injected label { font-size: 9px; color: #3182ce; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px; }
+.epic-injected span { font-size: 13px; color: #1a202c; font-weight: 600; }
+.epic-injected .tag { font-size: 9px; color: #3182ce; font-style: italic; margin-left: auto; }
+
+/* Cockpit pane */
+.cockpit-pane {
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #e2e8f0;
+}
+.cockpit-header-bar {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+  padding: 14px 16px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cockpit-header-bar .ch-title { font-size: 14px; font-weight: 800; }
+.cockpit-header-bar .ch-agent { font-size: 10px; color: rgba(255,255,255,0.65); }
+.status-indicator {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
+  transition: all 0.3s;
+}
+.status-indicator.ringing {
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber);
+  animation: ring-pulse 0.5s infinite alternate;
+}
+.status-indicator.active {
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
+  animation: pulse 1.5s infinite;
+}
+@keyframes ring-pulse { from { transform: scale(1); } to { transform: scale(1.5); } }
+
+.cockpit-body {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+/* Call card */
+.call-card {
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.3s;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.call-card.idle .cc-status { font-size: 10px; color: #94a3b8; }
+.call-card.ringing {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  animation: card-pulse 0.6s infinite alternate;
+}
+@keyframes card-pulse { from { box-shadow: none; } to { box-shadow: 0 0 12px rgba(252,211,77,0.4); } }
+.call-card.active { border-color: #86efac; background: #f0fdf4; }
+.call-card.ended { border-color: #93c5fd; background: #eff6ff; }
+.cc-status { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.cc-status.idle-s { color: #94a3b8; }
+.cc-status.ringing-s { color: #d97706; }
+.cc-status.active-s { color: #16a34a; }
+.cc-status.ended-s { color: #2563eb; }
+.cc-number { font-size: 17px; font-weight: 800; color: #0f172a; }
+.cc-match { font-size: 10px; color: #16a34a; font-weight: 600; margin-top: 2px; opacity: 0; transition: opacity 0.4s; }
+.cc-match.visible { opacity: 1; }
+.cc-timer { font-size: 11px; color: #64748b; font-weight: 600; font-family: monospace; float: right; }
+
+/* Transcript */
+.transcript-block {
+  border: 1px solid #d1fae5;
+  background: #f0fdf4;
+  border-radius: 8px;
+  padding: 10px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.4s;
+  max-height: 0;
+  overflow: hidden;
+}
+.transcript-block.visible {
+  opacity: 1;
+  transform: translateY(0);
+  max-height: 200px;
+}
+.tb-label { font-size: 9px; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+.tb-typing { font-size: 9px; color: #059669; }
+.tb-line { font-size: 10px; color: #374151; margin-bottom: 4px; line-height: 1.5; }
+.tb-line .spk { font-weight: 700; color: #0f172a; }
+
+/* Notes */
+.notes-block {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.notes-block.visible { opacity: 1; }
+.nb-label { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; padding: 6px 10px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+.notes-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: #374151;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  background: white;
+}
+.notes-input:disabled { background: #f8fafc; color: #94a3b8; }
+
+.cockpit-footer {
+  padding: 10px 12px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 6px;
+}
+.cf-save {
+  flex: 1;
+  background: #1d4ed8;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 7px;
+  border-radius: 5px;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  opacity: 0.4;
+  transition: all 0.3s;
+}
+.cf-save.active { opacity: 1; }
+.cf-save.active:hover { background: #1e40af; }
+.cf-epic {
+  flex: 1;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 7px;
+  border-radius: 5px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+.cf-epic.active { opacity: 1; }
+
+/* ── ONBOARDING ── */
+.onboard-steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  position: relative;
+}
+.onboard-steps::before {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(to right, var(--blue), var(--emerald));
+  opacity: 0.3;
+}
+.ob-step {
+  text-align: center;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ob-step:hover .ob-circle { transform: scale(1.1); }
+.ob-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  margin: 0 auto 14px;
+  transition: all 0.3s;
+  position: relative;
+  z-index: 1;
+}
+.ob-step.active .ob-circle {
+  background: var(--blue-dim);
+  border-color: var(--blue);
+  box-shadow: 0 0 20px rgba(88,166,255,0.3);
+}
+.ob-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.ob-desc { font-size: 11px; color: var(--text-muted); }
+.ob-detail {
+  margin-top: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  min-height: 100px;
+  transition: all 0.3s;
+}
+.ob-detail h4 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.ob-detail p { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+.ob-detail ul { list-style: none; margin-top: 10px; }
+.ob-detail ul li { font-size: 12px; color: var(--text-muted); padding: 3px 0; display: flex; gap: 8px; }
+.ob-detail ul li::before { content: '→'; color: var(--blue); }
+
+/* ── COMPARISON TABLE ── */
+.cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.cmp-table th {
+  padding: 14px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: left;
+}
+.cmp-table th:first-child { background: var(--surface); color: var(--text-muted); width: 220px; }
+.cmp-table th:nth-child(2) { background: rgba(248,81,73,0.1); color: var(--red); }
+.cmp-table th:nth-child(3) { background: var(--emerald-dim); color: var(--emerald); }
+.cmp-table td { padding: 12px 20px; font-size: 13px; border-bottom: 1px solid var(--border); }
+.cmp-table tr:last-child td { border-bottom: none; }
+.cmp-table td:first-child { font-weight: 600; color: var(--text-muted); background: var(--surface); font-size: 12px; }
+.cmp-table td:nth-child(2) { color: var(--red); }
+.cmp-table td:nth-child(3) { color: var(--emerald); font-weight: 500; }
+.cmp-table tr:hover td { background-color: rgba(255,255,255,0.02); }
+.cmp-table tr:hover td:first-child { background: var(--surface2); }
+
+/* ── TECH STACK ── */
+.stack-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.stack-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  transition: all 0.2s;
+  cursor: default;
+}
+.stack-card:hover { border-color: var(--surface3); transform: translateY(-2px); }
+.sc-category {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sc-category::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.stack-card ul { list-style: none; }
+.stack-card ul li {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.stack-card ul li:last-child { border-bottom: none; }
+.stack-card ul li::before { content: '▸'; color: var(--emerald); font-size: 9px; flex-shrink: 0; }
+
+/* ── PHASES ── */
+.phases-layout {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.phase-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.2s;
+  border-top: 3px solid transparent;
+}
+.phase-card:hover { transform: translateY(-3px); }
+.phase-card.p1 { border-top-color: var(--blue); }
+.phase-card.p2 { border-top-color: var(--emerald); }
+.phase-card.p3 { border-top-color: var(--amber); }
+.pc-num {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.p1 .pc-num { color: var(--blue); }
+.p2 .pc-num { color: var(--emerald); }
+.p3 .pc-num { color: var(--amber); }
+.pc-title { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 16px; }
+.phase-card ul { list-style: none; }
+.phase-card ul li {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+.phase-card ul li:last-child { border-bottom: none; }
+.phase-card ul li::before { content: '✓'; color: var(--emerald); font-weight: 700; flex-shrink: 0; font-size: 11px; margin-top: 1px; }
+
+/* ── TOOLTIP ── */
+.tooltip {
+  position: fixed;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  max-width: 260px;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  line-height: 1.5;
+}
+.tooltip.visible { opacity: 1; }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  position: relative;
+  z-index: 1;
+}
+footer span { color: var(--text-muted); }
+
+/* ── MISC ── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.tag.blue { background: var(--blue-dim); color: var(--blue); }
+.tag.emerald { background: var(--emerald-dim); color: var(--emerald); }
+.tag.amber { background: var(--amber-dim); color: var(--amber); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">sotto <span style="color:var(--text-dim); font-weight:400; font-size:11px;">— Architecture Plan</span></div>
+  <ul class="nav-links">
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#routing">Call Routing</a></li>
+    <li><a href="#adapter">Providers</a></li>
+    <li><a href="#simulator">Simulator</a></li>
+    <li><a href="#onboarding">Onboarding</a></li>
+    <li><a href="#phases">Roadmap</a></li>
+  </ul>
+  <div class="nav-badge">Draft v1 · Confidential</div>
+</nav>
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip"></div>
+
+<!-- HERO -->
+<div id="hero">
+  <div class="hero-tag"><div class="pulse"></div>Sotto — AI Call Intelligence Platform</div>
+  <h1>The smarter way<br>to <span class="highlight">work a call.</span></h1>
+  <p>A fully managed, provider-agnostic SaaS that brings call recording, live transcription, and AI-assisted notes directly into the browser — no servers, no IT, no window switching.</p>
+  <p style="font-size:13px; color:var(--text-dim); margin-top:-24px; margin-bottom:32px; max-width:520px; font-style:italic;">From <em>sotto voce</em> — present, quiet, and always listening.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><span class="num">0</span><span class="lbl">Servers to manage</span></div>
+    <div class="hero-stat"><span class="num">&lt;10m</span><span class="lbl">Setup to first call</span></div>
+    <div class="hero-stat"><span class="num">5+</span><span class="lbl">Phone providers</span></div>
+    <div class="hero-stat"><span class="num">Any OS</span><span class="lbl">Chrome only needed</span></div>
+  </div>
+  <div class="hero-cta">
+    <a href="#simulator" class="btn-primary">Try the Simulator</a>
+    <a href="#architecture" class="btn-ghost">View Architecture</a>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="eyebrow">System Design</div>
+  <h2 class="section-title">How It All Connects</h2>
+  <p class="section-desc">Fully serverless, event-driven pipeline. A call comes in on any phone system — the right agent's browser lights up automatically. Hover nodes for details.</p>
+
+  <div class="arch-flow">
+
+    <div class="arch-row">
+      <div class="arch-layer-label">Phone Layer</div>
+      <div class="arch-nodes">
+        <div class="arch-node blue" data-tip="Twilio is the default provider. Agencies without an existing system get a Twilio number provisioned automatically on signup.">
+          <span class="n-icon">📞</span><span class="n-name">Twilio</span><span class="n-sub">Default / MVP</span>
+        </div>
+        <div class="arch-node" data-tip="RingCentral integration via webhook + API key. Agency enters their RC credentials in the admin portal. No number porting required.">
+          <span class="n-icon">🔶</span><span class="n-name">RingCentral</span><span class="n-sub">API key</span>
+        </div>
+        <div class="arch-node" data-tip="Zoom Phone webhook integration. Supports both direct lines and call queues via the Zoom Phone API.">
+          <span class="n-icon">🔵</span><span class="n-name">Zoom Phone</span><span class="n-sub">Webhook</span>
+        </div>
+        <div class="arch-node" data-tip="Microsoft Teams Phone integration via Microsoft Graph API. Supports the calling plans and operator connect models.">
+          <span class="n-icon">🟣</span><span class="n-name">MS Teams</span><span class="n-sub">Graph API</span>
+        </div>
+        <div class="arch-node" data-tip="8x8 webhook integration. Supports both direct line and queue routing scenarios.">
+          <span class="n-icon">🟢</span><span class="n-name">8x8</span><span class="n-sub">Webhook</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-dim); font-style:italic; margin-left:8px;">+ more via adapter</div>
+      </div>
+    </div>
+
+    <div class="arch-sep">
+      <div></div>
+      <div class="arch-sep-line">
+        <div class="arch-dot-flow"></div>
+        <span class="arch-arrow-label">All providers normalize to one internal event schema</span>
+      </div>
+    </div>
+
+    <div class="arch-row">
+      <div class="arch-layer-label">Adapter</div>
+      <div class="arch-nodes">
+        <div class="arch-node emerald wide" data-tip="A single Lambda function receives webhooks from any provider. It normalizes the payload into our internal schema: call_id, tenant_id, direction, from, duration, recording_url, answered_by. New providers are added by writing a new adapter class.">
+          <span class="n-icon">⚙️</span><span class="n-name">Universal Adapter Lambda</span><span class="n-sub">Normalizes any provider → internal schema</span>
+        </div>
+        <div class="arch-node" data-tip="Provider API credentials (Twilio auth tokens, RingCentral keys, etc.) are stored encrypted per-tenant in AWS Secrets Manager. Never stored in DynamoDB or environment variables.">
+          <span class="n-icon">🔑</span><span class="n-name">Secrets Manager</span><span class="n-sub">Per-tenant creds</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-sep">
+      <div></div>
+      <div class="arch-sep-line">
+        <div class="arch-dot-flow"></div>
+        <span class="arch-arrow-label">Normalized event triggers processing pipeline</span>
+      </div>
+    </div>
+
+    <div class="arch-row">
+      <div class="arch-layer-label">Processing</div>
+      <div class="arch-nodes">
+        <div class="arch-node blue" data-tip="Recording URL from the provider is fetched and stored in S3 under the tenant's isolated prefix: s3://recordings/{tenant_id}/{year}/{month}/{call_id}.mp3. Strict IAM policies ensure tenants cannot access each other's data.">
+          <span class="n-icon">🎙️</span><span class="n-name">S3 Recording</span><span class="n-sub">Per-tenant prefix</span>
+        </div>
+        <span style="color:var(--text-dim); font-size:14px;">→</span>
+        <div class="arch-node amber" data-tip="AWS Transcribe processes the recording asynchronously. Supports speaker diarization (identifies who said what). Results are stored back in S3 as JSON and indexed in DynamoDB. Alternatively: OpenAI Whisper for higher accuracy.">
+          <span class="n-icon">📝</span><span class="n-name">Transcription</span><span class="n-sub">AWS Transcribe / Whisper</span>
+        </div>
+        <span style="color:var(--text-dim); font-size:14px;">→</span>
+        <div class="arch-node purple" data-tip="Claude (via AWS Bedrock) summarizes the call, extracts action items, flags compliance keywords, and suggests note templates. This is optional at MVP — transcription alone provides immediate value.">
+          <span class="n-icon">🤖</span><span class="n-name">AI Summary</span><span class="n-sub">Claude via Bedrock</span>
+        </div>
+        <span style="color:var(--text-dim); font-size:14px;">→</span>
+        <div class="arch-node emerald" data-tip="Call metadata (call_id, tenant_id, agent_id, duration, transcript_status, notes) stored in DynamoDB with GSIs for fast lookup by tenant, agent, date, and phone number.">
+          <span class="n-icon">🗄️</span><span class="n-name">DynamoDB</span><span class="n-sub">Call metadata + notes</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-sep">
+      <div></div>
+      <div class="arch-sep-line">
+        <div class="arch-dot-flow"></div>
+        <span class="arch-arrow-label">Push notification dispatched to the correct agent via WebSocket</span>
+      </div>
+    </div>
+
+    <div class="arch-row">
+      <div class="arch-layer-label">Auth / Routing</div>
+      <div class="arch-nodes">
+        <div class="arch-node purple" data-tip="Cognito User Pools with two groups: Admins (manage agency, invite agents, configure providers) and Agents (access only their own calls). Each agency is an isolated tenant — complete data separation.">
+          <span class="n-icon">🔐</span><span class="n-name">Cognito</span><span class="n-sub">Admin + Agent pools</span>
+        </div>
+        <div class="arch-node blue" data-tip="API Gateway HTTP API with Cognito JWT authorizer on all routes. WebSocket API for real-time push to the Chrome extension (call started, transcript ready events).">
+          <span class="n-icon">🌐</span><span class="n-name">API Gateway</span><span class="n-sub">HTTP + WebSocket APIs</span>
+        </div>
+        <div class="arch-node" data-tip="The admin web portal (React + CloudFront) where agency admins sign up, connect their phone provider, manage users, assign numbers to agents, and view call history.">
+          <span class="n-icon">🖥️</span><span class="n-name">Admin Portal</span><span class="n-sub">React / CloudFront</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-sep">
+      <div></div>
+      <div class="arch-sep-line">
+        <div class="arch-dot-flow"></div>
+        <span class="arch-arrow-label">WebSocket pushes call events directly to the agent's extension</span>
+      </div>
+    </div>
+
+    <div class="arch-row">
+      <div class="arch-layer-label">Agent Layer</div>
+      <div class="arch-nodes">
+        <div class="arch-node emerald wide" data-tip="Chrome Extension using the Chrome Side Panel API (Manifest V3). Maintains a persistent WebSocket connection to the backend. When a call event arrives for this agent's ID, the panel activates automatically — no manual action from the agent.">
+          <span class="n-icon">🧩</span><span class="n-name">Chrome Extension — The Cockpit</span><span class="n-sub">Side Panel API, persistent WebSocket</span>
+        </div>
+        <span style="color:var(--text-dim); font-size:14px;">↔</span>
+        <div class="arch-node blue" data-tip="Phase 1: DOM scraping — extension reads client data directly from the Applied Epic web app using content scripts. Phone number injection, client name matching. Phase 2: Official Applied Epic API when revenue justifies the cost.">
+          <span class="n-icon">📋</span><span class="n-name">Applied Epic</span><span class="n-sub">DOM (v1) → API (v2)</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- CALL ROUTING -->
+<section id="routing">
+  <div class="eyebrow">Call Routing</div>
+  <h2 class="section-title">How the Right Cockpit Activates</h2>
+  <p class="section-desc">Insurance agencies use a mix of direct lines and shared queues, and a mix of desk phones and softphones. The platform handles all scenarios.</p>
+
+  <div class="routing-tabs">
+    <button class="routing-tab active" onclick="showRouting('direct')">Direct Line</button>
+    <button class="routing-tab" onclick="showRouting('queue')">Shared Queue</button>
+    <button class="routing-tab" onclick="showRouting('mixed')">Mixed Setup</button>
+  </div>
+
+  <!-- Direct Line -->
+  <div class="routing-panel active" id="routing-direct">
+    <div class="routing-diagram">
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:20px;">Agent has their own dedicated phone number (DID). A 1:1 mapping in the admin portal connects this number to the agent's account. Simplest scenario.</p>
+      <div class="flow-chain">
+        <div class="flow-box highlight-blue">
+          <span class="f-icon">📱</span>
+          <span class="f-name">Client calls</span>
+          <span class="f-sub">+1 (555) 234-0001<br><em>Sarah's direct line</em></span>
+        </div>
+        <div class="flow-arrow colored">→</div>
+        <div class="flow-box">
+          <span class="f-icon">☁️</span>
+          <span class="f-name">Provider</span>
+          <span class="f-sub">Routes to Sarah's<br>desk or softphone</span>
+        </div>
+        <div class="flow-arrow colored">→</div>
+        <div class="flow-box">
+          <span class="f-icon">⚙️</span>
+          <span class="f-name">Webhook fires</span>
+          <span class="f-sub">Payload includes<br>the called DID</span>
+        </div>
+        <div class="flow-arrow colored">→</div>
+        <div class="flow-box">
+          <span class="f-icon">🔍</span>
+          <span class="f-name">Lookup</span>
+          <span class="f-sub">DID → Agent ID<br>(admin mapping)</span>
+        </div>
+        <div class="flow-arrow colored">→</div>
+        <div class="flow-box highlight">
+          <span class="f-icon">🧩</span>
+          <span class="f-name">Sarah's Cockpit</span>
+          <span class="f-sub">Activates instantly</span>
+        </div>
+      </div>
+      <div class="routing-note">
+        <span class="icon">ℹ️</span>
+        <span>Admin setup: In the portal, admin selects a number from their provider and assigns it to a specific agent. Done once. After that, all calls to that number auto-route to that agent's Cockpit regardless of whether they're on a desk phone or softphone.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared Queue -->
+  <div class="routing-panel" id="routing-queue">
+    <div class="routing-diagram">
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:20px;">Client calls a main number, hits an IVR, gets queued, and whoever picks up gets the call. We identify <em>who answered</em> from the provider's webhook payload, then activate that specific agent's Cockpit.</p>
+      <div class="flow-chain">
+        <div class="flow-box highlight-blue">
+          <span class="f-icon">📱</span>
+          <span class="f-name">Client calls</span>
+          <span class="f-sub">+1 (555) 800-0000<br><em>Main line</em></span>
+        </div>
+        <div class="flow-arrow colored">→</div>
+        <div class="flow-box">
+          <span class="f-icon">🔀</span>
+          <span class="f-name">IVR / Queue</span>
+          <span class="f-sub">Press 1 for claims<br>All agents available</span>
+        </div>
+        <div class="flow-arrow colored">→</div>
+        <div class="flow-box">
+          <span class="f-icon">🤝</span>
+          <span class="f-name">Agent answers</span>
+          <span class="f-sub">Ext. 204 picks up<br>= Marcus</span>
+        </div>
+        <div class="flow-arrow colored">→</div>
+        <div class="flow-box">
+          <span class="f-icon">⚙️</span>
+          <span class="f-name">Webhook fires</span>
+          <span class="f-sub">Payload includes<br><strong>answered_by: ext.204</strong></span>
+        </div>
+        <div class="flow-arrow colored">→</div>
+        <div class="flow-box">
+          <span class="f-icon">🔍</span>
+          <span class="f-name">Lookup</span>
+          <span class="f-sub">Ext 204 → Marcus<br>(admin mapping)</span>
+        </div>
+        <div class="flow-arrow colored">→</div>
+        <div class="flow-box highlight">
+          <span class="f-icon">🧩</span>
+          <span class="f-name">Marcus's Cockpit</span>
+          <span class="f-sub">Only Marcus's activates</span>
+        </div>
+      </div>
+      <div class="routing-note">
+        <span class="icon">⚡</span>
+        <span><strong>How Cockpit knows it's your call:</strong> The Chrome extension maintains a persistent WebSocket connection to the backend. When the backend resolves the answered_by to an agent_id, it pushes the call event only to that agent's WebSocket connection. Every other agent's Cockpit stays idle.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mixed -->
+  <div class="routing-panel" id="routing-mixed">
+    <div class="routing-diagram">
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:20px;">Most real agencies have both. Some agents have direct lines. Others are in a queue pool. Some use desk phones, others use softphones on their laptop or mobile. The admin maps each one.</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
+        <div>
+          <div style="font-size:10px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Admin Mapping Table</div>
+          <div style="background:var(--surface2); border-radius:8px; overflow:hidden; border:1px solid var(--border);">
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-dim); padding:8px 12px; border-bottom:1px solid var(--border);">
+              <span>Identifier</span><span>Type</span><span>Agent</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; font-size:11px; color:var(--text-muted); padding:7px 12px; border-bottom:1px solid var(--border);">
+              <span>555-234-0001</span><span><span class="tag blue">DID</span></span><span>Sarah J.</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; font-size:11px; color:var(--text-muted); padding:7px 12px; border-bottom:1px solid var(--border);">
+              <span>Ext. 204</span><span><span class="tag emerald">Queue</span></span><span>Marcus T.</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; font-size:11px; color:var(--text-muted); padding:7px 12px; border-bottom:1px solid var(--border);">
+              <span>555-234-0003</span><span><span class="tag blue">DID</span></span><span>Priya K.</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; font-size:11px; color:var(--text-muted); padding:7px 12px;">
+              <span>Ext. 207</span><span><span class="tag emerald">Queue</span></span><span>James R.</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px; font-weight:700; color:var(--emerald); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Device Support</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted);">
+              <strong style="color:var(--text); display:block; margin-bottom:3px;">🖥️ Desk Phones (SIP)</strong>
+              Identified by their SIP extension in the phone system. Admin maps extension → agent once during setup.
+            </div>
+            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted);">
+              <strong style="color:var(--text); display:block; margin-bottom:3px;">💻 Softphones</strong>
+              Identified by their login email in the provider system. Matches directly to their agent account.
+            </div>
+            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted);">
+              <strong style="color:var(--text); display:block; margin-bottom:3px;">📱 Mobile Apps</strong>
+              Provider mobile apps report the same user identity. Same routing logic applies.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="routing-note">
+        <span class="icon">✅</span>
+        <span>The backend doesn't care about device type. As long as the provider reports who answered (by extension, SIP URI, or user identity), the Cockpit routing works. Admin does the mapping once. Agents never touch configuration.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- UNIVERSAL ADAPTER -->
+<section id="adapter">
+  <div class="eyebrow">Provider Agnostic</div>
+  <h2 class="section-title">The Universal Adapter</h2>
+  <p class="section-desc">Agencies keep their existing phone system and enter their API credentials on signup. The adapter normalizes every provider's webhook into one internal schema. Click a provider to see the transformation.</p>
+
+  <div class="adapter-layout">
+    <div class="provider-btns">
+      <button class="provider-btn active" onclick="selectProvider('twilio')" id="pbtn-twilio">
+        <div class="p-dot" style="background:#f22f46;"></div> Twilio
+        <span class="p-badge mvp">MVP</span>
+      </button>
+      <button class="provider-btn" onclick="selectProvider('ringcentral')" id="pbtn-ringcentral">
+        <div class="p-dot" style="background:#ff6600;"></div> RingCentral
+        <span class="p-badge soon">Phase 2</span>
+      </button>
+      <button class="provider-btn" onclick="selectProvider('zoom')" id="pbtn-zoom">
+        <div class="p-dot" style="background:#2d8cff;"></div> Zoom Phone
+        <span class="p-badge soon">Phase 2</span>
+      </button>
+      <button class="provider-btn" onclick="selectProvider('teams')" id="pbtn-teams">
+        <div class="p-dot" style="background:#6264a7;"></div> MS Teams
+        <span class="p-badge soon">Phase 2</span>
+      </button>
+      <button class="provider-btn" onclick="selectProvider('8x8')" id="pbtn-8x8">
+        <div class="p-dot" style="background:#00b388;"></div> 8x8
+        <span class="p-badge soon">Phase 2</span>
+      </button>
+    </div>
+
+    <div class="code-block" id="adapter-input-block">
+      <div class="code-header">
+        <span id="adapter-input-label">Twilio Webhook Payload</span>
+        <span class="badge-label badge-red">Raw Input</span>
+      </div>
+      <code id="adapter-input-code"></code>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span>Normalized Internal Schema</span>
+        <span class="badge-label badge-green">Output — Always Identical</span>
+      </div>
+      <code id="adapter-output-code"></code>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- COCKPIT SIMULATOR -->
+<section id="simulator" class="full-width">
+  <div class="sim-inner">
+    <div class="sim-header">
+      <div class="eyebrow">Live Demo</div>
+      <h2 class="section-title">The Cockpit — Interactive Simulator</h2>
+      <p class="section-desc">This is what an agent sees in their browser, beside Applied Epic, all day long. Click Simulate Call to walk through the full flow.</p>
+    </div>
+
+    <div class="sim-controls">
+      <button class="btn-primary" id="sim-btn" onclick="handleSimBtn()">Simulate Incoming Call</button>
+      <button class="btn-ghost" id="end-btn" onclick="endCall()" style="display:none;">End Call</button>
+      <button class="btn-ghost" onclick="resetSim()" id="reset-btn" style="display:none;">Reset</button>
+      <div class="sim-state-label" id="sim-state-label">Idle — Waiting for call</div>
+    </div>
+
+    <div class="cockpit-layout">
+      <!-- Epic Pane -->
+      <div class="epic-pane">
+        <div class="epic-bar">
+          <div class="tb-dot" style="background:#ef4444;"></div>
+          <div class="tb-dot" style="background:#f59e0b;"></div>
+          <div class="tb-dot" style="background:#10b981;"></div>
+          <div class="tb-url">app.useappliedepic.com — Client: Margaret Thornton</div>
+        </div>
+        <div class="epic-body">
+          <h3>Policy #POL-2024-98765</h3>
+          <div class="epic-field"><label>Client Name</label><span>Margaret Thornton</span></div>
+          <div class="epic-field"><label>Policy Type</label><span>Commercial General Liability</span></div>
+          <div class="epic-field"><label>Renewal Date</label><span>August 14, 2026</span></div>
+          <div class="epic-field"><label>Status</label><span style="color:#16a34a; font-weight:700;">● Active</span></div>
+          <div class="epic-injected" id="epic-injected">
+            <div>
+              <label>📌 Matched by Cockpit</label>
+              <span>(555) 234-8901</span>
+            </div>
+            <div class="tag" style="margin-left:auto;">← injected</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cockpit Pane -->
+      <div class="cockpit-pane">
+        <div class="cockpit-header-bar">
+          <div>
+            <div class="ch-title">Cockpit</div>
+            <div class="ch-agent">Agent: Sarah J. · Acme Insurance</div>
+          </div>
+          <div class="status-indicator" id="status-dot"></div>
+        </div>
+
+        <div class="cockpit-body" id="cockpit-body">
+          <!-- Call Card -->
+          <div class="call-card idle" id="call-card">
+            <div class="cc-status idle-s" id="cc-status">● Waiting for call...</div>
+            <div class="cc-number" id="cc-number" style="color:var(--text-dim); font-size:13px;">No active call</div>
+            <div class="cc-match" id="cc-match"></div>
+          </div>
+
+          <!-- Transcript -->
+          <div class="transcript-block" id="transcript-block">
+            <div class="tb-label">
+              📝 AI Transcript
+              <span class="tb-typing" id="tb-typing" style="display:none;">● transcribing...</span>
+            </div>
+            <div id="transcript-lines"></div>
+          </div>
+
+          <!-- Notes -->
+          <div class="notes-block" id="notes-block">
+            <div class="nb-label">Call Notes</div>
+            <textarea class="notes-input" id="notes-input" disabled placeholder="Notes will unlock when the call ends..."></textarea>
+          </div>
+        </div>
+
+        <div class="cockpit-footer">
+          <button class="cf-save" id="cf-save">Save to Record</button>
+          <button class="cf-epic" id="cf-epic">Push to Epic</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ONBOARDING -->
+<section id="onboarding">
+  <div class="eyebrow">Signup Flow</div>
+  <h2 class="section-title">Zero to First Call in Under 10 Minutes</h2>
+  <p class="section-desc">No IT department. No server setup. Admin signs up, agents get an email, install the extension, and they're live. Click each step.</p>
+
+  <div class="onboard-steps" id="onboard-steps">
+    <div class="ob-step active" onclick="showStep(0)">
+      <div class="ob-circle">📝</div>
+      <div class="ob-title">Sign Up</div>
+      <div class="ob-desc">Admin only</div>
+    </div>
+    <div class="ob-step" onclick="showStep(1)">
+      <div class="ob-circle">📞</div>
+      <div class="ob-title">Connect Phone</div>
+      <div class="ob-desc">Any provider</div>
+    </div>
+    <div class="ob-step" onclick="showStep(2)">
+      <div class="ob-circle">👥</div>
+      <div class="ob-title">Invite Agents</div>
+      <div class="ob-desc">Email invite</div>
+    </div>
+    <div class="ob-step" onclick="showStep(3)">
+      <div class="ob-circle">🧩</div>
+      <div class="ob-title">Install Extension</div>
+      <div class="ob-desc">Chrome Web Store</div>
+    </div>
+    <div class="ob-step" onclick="showStep(4)">
+      <div class="ob-circle">🎙️</div>
+      <div class="ob-title">First Call</div>
+      <div class="ob-desc">Cockpit is live</div>
+    </div>
+  </div>
+
+  <div class="ob-detail" id="ob-detail">
+    <h4>Step 1 — Admin Signs Up</h4>
+    <p>Agency admin enters their name, agency name, email, and password. That's it. No credit card required for the trial. Their tenant is provisioned automatically in the background.</p>
+    <ul>
+      <li>Agency account created</li>
+      <li>Isolated DynamoDB partition provisioned</li>
+      <li>S3 prefix allocated for recordings</li>
+      <li>Admin Cognito account created</li>
+    </ul>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- COMPARISON -->
+<section id="comparison">
+  <div class="eyebrow">Competitive Position</div>
+  <h2 class="section-title">The Old Way vs. The New Way</h2>
+  <p class="section-desc">Same core value proposition. Completely different delivery model. Agencies understand the problem — you're just showing them a version they'd actually want.</p>
+
+  <table class="cmp-table">
+    <thead>
+      <tr>
+        <th>Capability</th>
+        <th>Legacy On-Premise (2010 Model)</th>
+        <th>This Platform (2026 SaaS)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Deployment</td><td>Dedicated Windows Server per agency</td><td>Nothing to deploy. Browser only.</td></tr>
+      <tr><td>OS Support</td><td>Windows clients only</td><td>Any OS with Chrome installed</td></tr>
+      <tr><td>IT Requirement</td><td>Outsourced IT to manage servers</td><td>None. Fully managed by us.</td></tr>
+      <tr><td>User Management</td><td>Manual Windows / Active Directory</td><td>Email invite. One click. Done.</td></tr>
+      <tr><td>Phone Providers</td><td>Single locked-in provider</td><td>Any provider. Bring your API key.</td></tr>
+      <tr><td>Queue Routing</td><td>Manual configuration per install</td><td>Admin maps extensions once. Auto forever.</td></tr>
+      <tr><td>Agent Workflow</td><td>Separate app, constant window-switching</td><td>Lives in browser, beside Epic</td></tr>
+      <tr><td>Updates</td><td>Scheduled maintenance windows, manual</td><td>Automatic, invisible, continuous</td></tr>
+      <tr><td>Call Transcription</td><td>None</td><td>Automatic, speaker-attributed</td></tr>
+      <tr><td>AI Features</td><td>None</td><td>Summarization, action items, flagging</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- TECH STACK -->
+<section id="stack" style="background: var(--surface); max-width:none; padding: 80px 48px;">
+  <div style="max-width:1200px; margin:0 auto;">
+    <div class="eyebrow">Technology</div>
+    <h2 class="section-title">The Stack</h2>
+    <p class="section-desc">Serverless, scalable, cost-efficient. Everything you've already built before.</p>
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="sc-category">Telephony</div>
+        <ul>
+          <li>Twilio (MVP)</li>
+          <li>RingCentral SDK</li>
+          <li>Zoom Phone API</li>
+          <li>MS Graph API (Teams)</li>
+          <li>8x8 Webhooks</li>
+        </ul>
+      </div>
+      <div class="stack-card">
+        <div class="sc-category" style="color:var(--emerald);">AWS Backend</div>
+        <ul>
+          <li>Lambda (Python 3.13)</li>
+          <li>API Gateway (HTTP + WS)</li>
+          <li>S3 (recordings)</li>
+          <li>DynamoDB</li>
+          <li>AWS Transcribe</li>
+          <li>Secrets Manager</li>
+          <li>EventBridge</li>
+        </ul>
+      </div>
+      <div class="stack-card">
+        <div class="sc-category" style="color:var(--amber);">Auth / Delivery</div>
+        <ul>
+          <li>Cognito User Pools</li>
+          <li>CloudFront + S3</li>
+          <li>AWS SAM (IaC)</li>
+          <li>GitHub Actions CI/CD</li>
+          <li>OIDC Auth (no keys)</li>
+        </ul>
+      </div>
+      <div class="stack-card">
+        <div class="sc-category" style="color:var(--purple);">Client + AI</div>
+        <ul>
+          <li>Chrome Extension (MV3)</li>
+          <li>Chrome Side Panel API</li>
+          <li>React + Tailwind</li>
+          <li>WebSocket (persistent)</li>
+          <li>Claude via Bedrock</li>
+          <li>Applied Epic DOM API</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- PHASES -->
+<section id="phases">
+  <div class="eyebrow">Build Roadmap</div>
+  <h2 class="section-title">Three Phases to Market</h2>
+  <p class="section-desc">Ship fast, prove the loop, then add depth as clients pull you forward. Don't build Phase 3 before you have Phase 1 customers.</p>
+
+  <div class="phases-layout">
+    <div class="phase-card p1">
+      <div class="pc-num">Phase 1 — MVP</div>
+      <div class="pc-title">Prove the Loop</div>
+      <ul>
+        <li>Twilio call recording</li>
+        <li>S3 storage per tenant</li>
+        <li>AWS Transcribe pipeline</li>
+        <li>Chrome side panel (Cockpit)</li>
+        <li>Transcript display</li>
+        <li>Notes input + save</li>
+        <li>Cognito auth + multi-tenancy</li>
+        <li>Email-based agent invites</li>
+        <li>Admin number → agent mapping</li>
+        <li>WebSocket call routing</li>
+      </ul>
+    </div>
+    <div class="phase-card p2">
+      <div class="pc-num">Phase 2 — Integrate</div>
+      <div class="pc-title">Add Intelligence</div>
+      <ul>
+        <li>Applied Epic DOM integration</li>
+        <li>Caller ID → client matching</li>
+        <li>AI call summarization (Claude)</li>
+        <li>Additional phone providers</li>
+        <li>Admin web dashboard</li>
+        <li>Call history + search</li>
+        <li>AI note suggestions</li>
+        <li>Speaker diarization</li>
+      </ul>
+    </div>
+    <div class="phase-card p3">
+      <div class="pc-num">Phase 3 — Scale</div>
+      <div class="pc-title">Deepen the Moat</div>
+      <ul>
+        <li>Applied Epic official API</li>
+        <li>Renewal flagging automation</li>
+        <li>Compliance keyword detection</li>
+        <li>Manager analytics dashboard</li>
+        <li>Billing + subscription mgmt</li>
+        <li>E&amp;O audit trail exports</li>
+        <li>Mobile companion</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>AI Call Intelligence Platform — Architecture Plan</div>
+  <div>Confidential · <span>Draft v1</span> · 2026</div>
+</footer>
+
+<script>
+// ── TOOLTIP ──
+const tooltip = document.getElementById('tooltip');
+document.querySelectorAll('[data-tip]').forEach(el => {
+  el.addEventListener('mouseenter', e => {
+    tooltip.textContent = el.dataset.tip;
+    tooltip.classList.add('visible');
+  });
+  el.addEventListener('mousemove', e => {
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top = (e.clientY - 10) + 'px';
+    // Flip if near edge
+    if (e.clientX + 280 > window.innerWidth) {
+      tooltip.style.left = (e.clientX - 270) + 'px';
+    }
+  });
+  el.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('visible');
+  });
+});
+
+// ── CALL ROUTING ──
+function showRouting(type) {
+  document.querySelectorAll('.routing-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.routing-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('routing-' + type).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── PROVIDER ADAPTER ──
+const adapterData = {
+  twilio: {
+    label: 'Twilio Webhook Payload',
+    input: `<span class="c-comment">// Twilio — call completed webhook</span>
+<span class="c-bracket">{</span>
+  <span class="c-key">"CallSid"</span>: <span class="c-str">"CA1234567890abcdef"</span>,
+  <span class="c-key">"CallStatus"</span>: <span class="c-str">"completed"</span>,
+  <span class="c-key">"Direction"</span>: <span class="c-str">"inbound"</span>,
+  <span class="c-key">"From"</span>: <span class="c-str">"+15552348901"</span>,
+  <span class="c-key">"To"</span>: <span class="c-str">"+15552340001"</span>,
+  <span class="c-key">"CallDuration"</span>: <span class="c-val">183</span>,
+  <span class="c-key">"RecordingUrl"</span>: <span class="c-str">"https://api.twilio.com/..."</span>,
+  <span class="c-key">"CalledVia"</span>: <span class="c-str">"+15552340001"</span>
+<span class="c-bracket">}</span>`
+  },
+  ringcentral: {
+    label: 'RingCentral Webhook Payload',
+    input: `<span class="c-comment">// RingCentral — telephony session event</span>
+<span class="c-bracket">{</span>
+  <span class="c-key">"uuid"</span>: <span class="c-str">"rc-session-abc-999"</span>,
+  <span class="c-key">"event"</span>: <span class="c-str">"/restapi/v1.0/account/~/telephony/sessions"</span>,
+  <span class="c-key">"body"</span>: <span class="c-bracket">{</span>
+    <span class="c-key">"sessionId"</span>: <span class="c-str">"s-a0000000000001"</span>,
+    <span class="c-key">"telephonySessionId"</span>: <span class="c-str">"XXXXXXXXXX"</span>,
+    <span class="c-key">"status"</span>: <span class="c-bracket">{</span>
+      <span class="c-key">"code"</span>: <span class="c-str">"Disconnected"</span>
+    <span class="c-bracket">}</span>,
+    <span class="c-key">"from"</span>: <span class="c-bracket">{</span>
+      <span class="c-key">"phoneNumber"</span>: <span class="c-str">"+15552348901"</span>
+    <span class="c-bracket">}</span>,
+    <span class="c-key">"to"</span>: <span class="c-bracket">[{</span>
+      <span class="c-key">"extensionId"</span>: <span class="c-str">"204"</span>,
+      <span class="c-key">"status"</span>: <span class="c-bracket">{</span> <span class="c-key">"code"</span>: <span class="c-str">"Answered"</span> <span class="c-bracket">}</span>
+    <span class="c-bracket">}]</span>
+  <span class="c-bracket">}</span>
+<span class="c-bracket">}</span>`
+  },
+  zoom: {
+    label: 'Zoom Phone Webhook Payload',
+    input: `<span class="c-comment">// Zoom Phone — phone.callee_ended event</span>
+<span class="c-bracket">{</span>
+  <span class="c-key">"event"</span>: <span class="c-str">"phone.callee_ended"</span>,
+  <span class="c-key">"event_ts"</span>: <span class="c-val">1709597400000</span>,
+  <span class="c-key">"payload"</span>: <span class="c-bracket">{</span>
+    <span class="c-key">"account_id"</span>: <span class="c-str">"zoom-acct-123"</span>,
+    <span class="c-key">"object"</span>: <span class="c-bracket">{</span>
+      <span class="c-key">"id"</span>: <span class="c-str">"z_call_abc"</span>,
+      <span class="c-key">"caller_number"</span>: <span class="c-str">"+15552348901"</span>,
+      <span class="c-key">"callee_number"</span>: <span class="c-str">"+15552340003"</span>,
+      <span class="c-key">"callee_user_id"</span>: <span class="c-str">"zoom-user-priya"</span>,
+      <span class="c-key">"duration"</span>: <span class="c-val">183</span>,
+      <span class="c-key">"recording_files"</span>: <span class="c-bracket">[...]</span>
+    <span class="c-bracket">}</span>
+  <span class="c-bracket">}</span>
+<span class="c-bracket">}</span>`
+  },
+  teams: {
+    label: 'MS Teams Graph API Event',
+    input: `<span class="c-comment">// MS Teams — call record via Graph API</span>
+<span class="c-bracket">{</span>
+  <span class="c-key">"@odata.type"</span>: <span class="c-str">"#microsoft.graph.callRecord"</span>,
+  <span class="c-key">"id"</span>: <span class="c-str">"teams-record-uuid"</span>,
+  <span class="c-key">"type"</span>: <span class="c-str">"ucv2"</span>,
+  <span class="c-key">"startDateTime"</span>: <span class="c-str">"2026-03-04T14:10:00Z"</span>,
+  <span class="c-key">"endDateTime"</span>: <span class="c-str">"2026-03-04T14:13:03Z"</span>,
+  <span class="c-key">"participants"</span>: <span class="c-bracket">[</span>
+    <span class="c-bracket">{</span>
+      <span class="c-key">"user"</span>: <span class="c-bracket">{</span>
+        <span class="c-key">"id"</span>: <span class="c-str">"teams-agent-sarah-uuid"</span>,
+        <span class="c-key">"displayName"</span>: <span class="c-str">"Sarah Jones"</span>
+      <span class="c-bracket">}</span>
+    <span class="c-bracket">}</span>
+  <span class="c-bracket">]</span>
+<span class="c-bracket">}</span>`
+  },
+  '8x8': {
+    label: '8x8 Webhook Payload',
+    input: `<span class="c-comment">// 8x8 — call terminated event</span>
+<span class="c-bracket">{</span>
+  <span class="c-key">"event_type"</span>: <span class="c-str">"CALL_TERMINATED"</span>,
+  <span class="c-key">"call_id"</span>: <span class="c-str">"8x8-call-xyz789"</span>,
+  <span class="c-key">"tenant_id"</span>: <span class="c-str">"8x8-tenant-001"</span>,
+  <span class="c-key">"direction"</span>: <span class="c-str">"INBOUND"</span>,
+  <span class="c-key">"caller"</span>: <span class="c-bracket">{</span>
+    <span class="c-key">"number"</span>: <span class="c-str">"+15552348901"</span>
+  <span class="c-bracket">}</span>,
+  <span class="c-key">"callee"</span>: <span class="c-bracket">{</span>
+    <span class="c-key">"extension"</span>: <span class="c-str">"207"</span>,
+    <span class="c-key">"user_email"</span>: <span class="c-str">"james@acmeins.com"</span>
+  <span class="c-bracket">}</span>,
+  <span class="c-key">"duration_seconds"</span>: <span class="c-val">183</span>,
+  <span class="c-key">"recording_url"</span>: <span class="c-str">"https://8x8.vc/rec/..."</span>
+<span class="c-bracket">}</span>`
+  }
+};
+
+const normalizedOutput = `<span class="c-comment">// Internal schema — always identical</span>
+<span class="c-bracket">{</span>
+  <span class="c-key">"event_type"</span>: <span class="c-str">"call.ended"</span>,
+  <span class="c-key">"tenant_id"</span>: <span class="c-str">"uuid-acme-insurance"</span>,
+  <span class="c-key">"agent_id"</span>: <span class="c-str">"uuid-agent-sarah"</span>,
+  <span class="c-key">"call"</span>: <span class="c-bracket">{</span>
+    <span class="c-key">"id"</span>: <span class="c-str">"internal-uuid-call"</span>,
+    <span class="c-key">"provider"</span>: <span class="c-str">"twilio"</span>,
+    <span class="c-key">"provider_call_id"</span>: <span class="c-str">"CA1234567890abcdef"</span>,
+    <span class="c-key">"direction"</span>: <span class="c-str">"inbound"</span>,
+    <span class="c-key">"from"</span>: <span class="c-str">"+15552348901"</span>,
+    <span class="c-key">"duration_sec"</span>: <span class="c-val">183</span>,
+    <span class="c-key">"recording_url"</span>: <span class="c-str">"s3://recs/acme/2026/..."</span>,
+    <span class="c-key">"timestamp"</span>: <span class="c-str">"2026-03-04T14:13:03Z"</span>
+  <span class="c-bracket">}</span>
+<span class="c-bracket">}</span>`;
+
+function selectProvider(p) {
+  document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pbtn-' + p).classList.add('active');
+  const d = adapterData[p];
+  document.getElementById('adapter-input-label').textContent = d.label;
+  document.getElementById('adapter-input-code').innerHTML = d.input;
+  document.getElementById('adapter-output-code').innerHTML = normalizedOutput;
+}
+// Init
+selectProvider('twilio');
+
+// ── COCKPIT SIMULATOR ──
+let simPhase = 'idle';
+let callInterval = null;
+let callSeconds = 0;
+const transcriptLines = [
+  { spk: 'Client', text: "Hi, I need to update my coverage for a new vehicle." },
+  { spk: 'Agent', text: "Of course, I can help with that. What year and make is the vehicle?" },
+  { spk: 'Client', text: "It's a 2024 Honda CR-V. I just bought it yesterday." },
+  { spk: 'Agent', text: "Great. And would you like to add comprehensive and collision?" },
+  { spk: 'Client', text: "Yes please, and I may need to update the home policy too." },
+];
+
+function handleSimBtn() {
+  if (simPhase === 'idle') startRinging();
+}
+
+function startRinging() {
+  simPhase = 'ringing';
+  document.getElementById('sim-btn').style.display = 'none';
+  document.getElementById('sim-state-label').textContent = 'Incoming call from (555) 234-8901...';
+
+  const card = document.getElementById('call-card');
+  const status = document.getElementById('cc-status');
+  const number = document.getElementById('cc-number');
+  const dot = document.getElementById('status-dot');
+
+  card.className = 'call-card ringing';
+  status.className = 'cc-status ringing-s';
+  status.textContent = '● Ringing...';
+  number.textContent = '(555) 234-8901';
+  number.style.color = '';
+  number.style.fontSize = '';
+  dot.className = 'status-indicator ringing';
+
+  // Auto-answer after 2.5s
+  setTimeout(() => {
+    simPhase = 'active';
+    card.className = 'call-card active';
+    status.className = 'cc-status active-s';
+    status.innerHTML = '● Call Active <span id="cc-timer-span" class="cc-timer">00:00</span>';
+    dot.className = 'status-indicator active';
+
+    // Show notes block placeholder
+    document.getElementById('notes-block').classList.add('visible');
+    document.getElementById('sim-state-label').textContent = 'Call in progress...';
+    document.getElementById('end-btn').style.display = '';
+
+    // Start timer
+    callSeconds = 0;
+    callInterval = setInterval(() => {
+      callSeconds++;
+      const m = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+      const s = String(callSeconds % 60).padStart(2, '0');
+      const ts = document.getElementById('cc-timer-span');
+      if (ts) ts.textContent = `${m}:${s}`;
+    }, 1000);
+  }, 2500);
+}
+
+function endCall() {
+  if (simPhase !== 'active') return;
+  simPhase = 'ended';
+  clearInterval(callInterval);
+
+  document.getElementById('end-btn').style.display = 'none';
+  document.getElementById('sim-state-label').textContent = 'Call ended — Transcribing...';
+
+  const card = document.getElementById('call-card');
+  const status = document.getElementById('cc-status');
+  const dot = document.getElementById('status-dot');
+  const match = document.getElementById('cc-match');
+
+  card.className = 'call-card ended';
+  status.className = 'cc-status ended-s';
+  status.textContent = '● Call Ended';
+  dot.className = 'status-indicator';
+
+  // Show epic injection
+  document.getElementById('epic-injected').classList.add('visible');
+
+  // Show client match
+  match.textContent = '✓ Matched: Margaret Thornton (POL-2024-98765)';
+  match.classList.add('visible');
+
+  // Show transcript block
+  const tb = document.getElementById('transcript-block');
+  tb.classList.add('visible');
+  const typing = document.getElementById('tb-typing');
+  typing.style.display = '';
+  const linesEl = document.getElementById('transcript-lines');
+  linesEl.innerHTML = '';
+
+  // Type transcript lines with delay
+  transcriptLines.forEach((line, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'tb-line';
+      div.innerHTML = `<span class="spk">${line.spk}:</span> ${line.text}`;
+      div.style.opacity = '0';
+      div.style.transform = 'translateY(4px)';
+      div.style.transition = 'all 0.3s';
+      linesEl.appendChild(div);
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          div.style.opacity = '1';
+          div.style.transform = 'translateY(0)';
+        }, 50);
+      });
+      if (i === transcriptLines.length - 1) {
+        typing.style.display = 'none';
+        document.getElementById('sim-state-label').textContent = 'Transcript ready — Add your notes and save.';
+        // Enable notes + buttons
+        const notesInput = document.getElementById('notes-input');
+        notesInput.disabled = false;
+        notesInput.placeholder = 'Client called about adding vehicle coverage (2024 CR-V). Also mentioned updating home policy. Follow up needed.';
+        document.getElementById('cf-save').classList.add('active');
+        document.getElementById('cf-epic').classList.add('active');
+        document.getElementById('reset-btn').style.display = '';
+      }
+    }, 600 + i * 700);
+  });
+}
+
+function resetSim() {
+  simPhase = 'idle';
+  clearInterval(callInterval);
+  callSeconds = 0;
+
+  document.getElementById('sim-btn').style.display = '';
+  document.getElementById('end-btn').style.display = 'none';
+  document.getElementById('reset-btn').style.display = 'none';
+  document.getElementById('sim-state-label').textContent = 'Idle — Waiting for call';
+
+  const card = document.getElementById('call-card');
+  card.className = 'call-card idle';
+  document.getElementById('cc-status').className = 'cc-status idle-s';
+  document.getElementById('cc-status').textContent = '● Waiting for call...';
+  document.getElementById('cc-number').textContent = 'No active call';
+  document.getElementById('cc-number').style.color = 'var(--text-dim)';
+  document.getElementById('cc-number').style.fontSize = '13px';
+  document.getElementById('cc-match').classList.remove('visible');
+  document.getElementById('cc-match').textContent = '';
+  document.getElementById('status-dot').className = 'status-indicator';
+
+  document.getElementById('epic-injected').classList.remove('visible');
+  document.getElementById('transcript-block').classList.remove('visible');
+  document.getElementById('transcript-lines').innerHTML = '';
+  document.getElementById('tb-typing').style.display = 'none';
+  document.getElementById('notes-block').classList.remove('visible');
+  document.getElementById('notes-input').disabled = true;
+  document.getElementById('notes-input').value = '';
+  document.getElementById('cf-save').classList.remove('active');
+  document.getElementById('cf-epic').classList.remove('active');
+}
+
+// ── ONBOARDING ──
+const stepDetails = [
+  {
+    title: 'Step 1 — Admin Signs Up',
+    body: 'Agency admin enters their name, agency name, email, and password. No credit card required for the trial. Their tenant is provisioned automatically in the background.',
+    items: ['Agency account created instantly', 'Isolated S3 prefix allocated for recordings', 'DynamoDB tenant partition provisioned', 'Admin Cognito account created']
+  },
+  {
+    title: 'Step 2 — Connect Phone Provider',
+    body: 'Admin selects their phone provider from the list. If they use Twilio or don\'t have a provider, we provision a number automatically. For existing providers, they paste their API key or webhook credentials.',
+    items: ['Select provider: Twilio, RingCentral, Zoom, Teams, 8x8', 'For Twilio: number provisioned automatically', 'For others: enter API key — done in 30 seconds', 'Webhook endpoint generated and configured automatically']
+  },
+  {
+    title: 'Step 3 — Map Numbers to Agents',
+    body: 'Admin sees all their registered phone numbers and extensions pulled automatically from the provider. For each number or extension, they assign it to an agent email. This is the one-time setup that makes routing work automatically forever.',
+    items: ['Numbers and extensions pulled from provider API', 'Assign each number/extension to an agent email', 'Supports both direct lines (DID) and queue extensions', 'One-time setup — routing is automatic from here on']
+  },
+  {
+    title: 'Step 4 — Agents Get Invited',
+    body: 'Admin enters each agent\'s email and hits invite. The system sends a branded email with a magic link. Agent clicks it, sets their password, and their account is pre-configured — already linked to their phone number.',
+    items: ['Admin enters email, hits invite — takes 5 seconds per agent', 'Agent receives email with setup link', 'Agent sets password — no other configuration needed', 'Account is pre-linked to their assigned phone number']
+  },
+  {
+    title: 'Step 5 — Install Extension & Go Live',
+    body: 'Agent opens Chrome Web Store, installs the Cockpit extension, and signs in with their new credentials. The extension is immediately live and connected to their number. The next call they answer, the Cockpit activates automatically.',
+    items: ['Install Cockpit from Chrome Web Store (one click)', 'Sign in with agency credentials', 'Extension is pre-configured — no settings to touch', 'Next call answered = Cockpit activates. Done.']
+  }
+];
+
+function showStep(i) {
+  document.querySelectorAll('.ob-step').forEach((s, idx) => {
+    s.classList.toggle('active', idx === i);
+  });
+  const d = stepDetails[i];
+  const el = document.getElementById('ob-detail');
+  el.style.opacity = '0';
+  setTimeout(() => {
+    el.innerHTML = `<h4>${d.title}</h4><p>${d.body}</p><ul>${d.items.map(it => `<li>${it}</li>`).join('')}</ul>`;
+    el.style.opacity = '1';
+  }, 150);
+  el.style.transition = 'opacity 0.15s';
+}
+</script>
+</body>
+</html>

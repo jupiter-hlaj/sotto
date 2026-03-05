@@ -1,0 +1,40 @@
+name: Promote Rollout Tier
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_tier:
+        description: 'Current tier to promote FROM'
+        required: true
+        type: choice
+        options: [beta, live_test]
+      to_tier:
+        description: 'Tier to promote TO'
+        required: true
+        type: choice
+        options: [live_test, full]
+      deployment_id:
+        description: 'Deployment ID to promote'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.PROD_OIDC_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Call RolloutManager Lambda
+        run: |
+          aws lambda invoke \
+            --function-name sotto-RolloutManager-prod \
+            --payload '{"action":"promote","from_tier":"${{ inputs.from_tier }}","to_tier":"${{ inputs.to_tier }}","deployment_id":"${{ inputs.deployment_id }}"}' \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/response.json
+          cat /tmp/response.json

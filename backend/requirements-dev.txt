@@ -1,0 +1,7 @@
+pytest>=7.0
+pytest-cov
+ruff
+bandit
+boto3
+moto[dynamodb,s3,sqs,secretsmanager]
+twilio

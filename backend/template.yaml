@@ -1,0 +1,1611 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sotto AI Call Intelligence Platform — Infrastructure Foundation
+
+# =========================================================
+# Parameters
+# =========================================================
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, prod]
+    Default: dev
+  LogLevel:
+    Type: String
+    Default: DEBUG
+    AllowedValues: [DEBUG, INFO, WARNING, ERROR]
+  CognitoAdminEmail:
+    Type: String
+    Description: Initial admin email for Cognito User Pool
+  SnsAlertEmail:
+    Type: String
+    Description: Email address for CloudWatch alarm notifications
+
+# =========================================================
+# Conditions
+# =========================================================
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+# =========================================================
+# Globals (Lambda + API defaults)
+# =========================================================
+Globals:
+  Function:
+    Runtime: python3.13
+    Architectures: [arm64]
+    MemorySize: 256
+    Timeout: 30
+    Tracing: Active
+    Layers:
+      - !Ref CommonLayer
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        LOG_LEVEL: !Ref LogLevel
+        POWERTOOLS_SERVICE_NAME: sotto
+        POWERTOOLS_METRICS_NAMESPACE: Sotto
+        AWS_ACCOUNT_ID: !Ref AWS::AccountId
+    Tags:
+      Project: sotto
+      Environment: !Ref Environment
+  Api:
+    TracingEnabled: true
+    Cors:
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization'"
+      AllowOrigin: "'*'"
+
+Resources:
+
+  # =========================================================
+  # Common Layer (Step 2)
+  # =========================================================
+
+  # =========================================================
+  # HTTP API (Step 3)
+  # =========================================================
+
+  SottoHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Environment
+      Auth:
+        DefaultAuthorizer: CognitoJwtAuthorizer
+        Authorizers:
+          CognitoJwtAuthorizer:
+            AuthorizationScopes:
+              - openid
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+              audience:
+                - !Ref UserPoolClient
+
+  # =========================================================
+  # Lambda Functions
+  # =========================================================
+
+  # 6.1 ProviderWebhookHandler — receives provider webhooks, validates, pushes to SQS
+  ProviderWebhookFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-provider-webhook-${Environment}
+      Handler: handlers.webhooks.provider_webhook.handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Environment:
+        Variables:
+          SQS_CALL_EVENTS_URL: !Ref CallEventsQueue
+          NUMBER_MAPPINGS_TABLE: !Ref NumberMappingsTable
+          TENANTS_TABLE: !Ref TenantsTable
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt CallEventsQueue.QueueName
+        - DynamoDBReadPolicy:
+            TableName: !Ref NumberMappingsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref TenantsTable
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:sotto/*
+      Events:
+        WebhookPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /webhooks/{provider}
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        HealthGet:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  # 6.2 RecordingProcessor — downloads recording, uploads to S3, triggers transcription
+  RecordingProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-recording-processor-${Environment}
+      Handler: handlers.calls.recording_processor.handler
+      CodeUri: src/
+      Timeout: 60
+      MemorySize: 512
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Environment:
+        Variables:
+          TRANSCRIPTION_INIT_FUNCTION: !Ref TranscriptionInitFunction
+          WEBSOCKET_API_ENDPOINT: !Sub https://${SottoWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref RecordingsBucket
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt TranscriptionResultsQueue.QueueName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CallsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref NumberMappingsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WsConnectionsTable
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:sotto/*
+        - LambdaInvokePolicy:
+            FunctionName: !Ref TranscriptionInitFunction
+        - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SottoWebSocketApi}/*/@connections/*
+      Events:
+        CallEventsSQS:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt CallEventsQueue.Arn
+            BatchSize: 1
+
+  # 6.3 TranscriptionInit — starts AWS Transcribe job
+  TranscriptionInitFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-transcription-init-${Environment}
+      Handler: handlers.calls.transcription_init.handler
+      CodeUri: src/
+      Timeout: 30
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CallsTable
+        - S3ReadPolicy:
+            BucketName: !Ref RecordingsBucket
+        - Statement:
+            - Effect: Allow
+              Action: transcribe:StartTranscriptionJob
+              Resource: "*"
+
+  # 6.4 TranscriptionResultProcessor — handles Transcribe EventBridge events
+  TranscriptionResultProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-transcription-result-${Environment}
+      Handler: handlers.calls.transcription_result.handler
+      CodeUri: src/
+      Timeout: 30
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Environment:
+        Variables:
+          AI_SUMMARIZER_FUNCTION: !Sub sotto-ai-summarizer-${Environment}
+          WEBSOCKET_API_ENDPOINT: !Sub https://${SottoWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref RecordingsBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CallsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WsConnectionsTable
+        - Statement:
+            - Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:sotto-ai-summarizer-${Environment}
+        - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SottoWebSocketApi}/*/@connections/*
+      Events:
+        TranscribeComplete:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.transcribe
+              detail:
+                TranscriptionJobStatus:
+                  - COMPLETED
+                  - FAILED
+
+  # 6.5 AISummarizer — generates call summary and action items via Bedrock
+  AISummarizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-ai-summarizer-${Environment}
+      Handler: handlers.ai.summarizer.handler
+      CodeUri: src/
+      Timeout: 60
+      MemorySize: 512
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Environment:
+        Variables:
+          WEBSOCKET_API_ENDPOINT: !Sub https://${SottoWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CallsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref TenantsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref FeatureFlagsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WsConnectionsTable
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0
+        - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SottoWebSocketApi}/*/@connections/*
+
+  # =========================================================
+  # WebSocket API (Step 6)
+  # =========================================================
+
+  SottoWebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub sotto-websocket-${Environment}
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.action
+      Tags:
+        Project: sotto
+        Environment: !Ref Environment
+
+  # -- Integrations --
+  WSConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref SottoWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WSConnectFunction.Arn}/invocations
+
+  WSDisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref SottoWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WSDisconnectFunction.Arn}/invocations
+
+  WSDefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref SottoWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WSDefaultFunction.Arn}/invocations
+
+  # -- Routes --
+  WSConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SottoWebSocketApi
+      RouteKey: $connect
+      AuthorizationType: NONE
+      Target: !Sub integrations/${WSConnectIntegration}
+
+  WSDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SottoWebSocketApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      Target: !Sub integrations/${WSDisconnectIntegration}
+
+  WSDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref SottoWebSocketApi
+      RouteKey: $default
+      AuthorizationType: NONE
+      Target: !Sub integrations/${WSDefaultIntegration}
+
+  # -- Deployment & Stage --
+  WSDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - WSConnectRoute
+      - WSDisconnectRoute
+      - WSDefaultRoute
+    Properties:
+      ApiId: !Ref SottoWebSocketApi
+
+  WSStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref SottoWebSocketApi
+      StageName: !Ref Environment
+      DeploymentId: !Ref WSDeployment
+      Tags:
+        Project: sotto
+        Environment: !Ref Environment
+
+  # -- Lambda invoke permissions for API Gateway --
+  WSConnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref WSConnectFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SottoWebSocketApi}/*/$connect
+
+  WSDisconnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref WSDisconnectFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SottoWebSocketApi}/*/$disconnect
+
+  WSDefaultPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref WSDefaultFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SottoWebSocketApi}/*/$default
+
+  # 6.6 WSConnect — validates JWT, stores connection
+  WSConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-ws-connect-${Environment}
+      Handler: handlers.websocket.connect.handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: !Ref UserPool
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WsConnectionsTable
+
+  # 6.7 WSDisconnect — deletes connection record
+  WSDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-ws-disconnect-${Environment}
+      Handler: handlers.websocket.disconnect.handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WsConnectionsTable
+
+  # 6.8 WSDefault — handles ping/pong and unexpected messages
+  WSDefaultFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-ws-default-${Environment}
+      Handler: handlers.websocket.default.handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Environment:
+        Variables:
+          WEBSOCKET_API_ENDPOINT: !Sub https://${SottoWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SottoWebSocketApi}/*/@connections/*
+
+  # =========================================================
+  # Admin API Functions (Step 7)
+  # =========================================================
+
+  # 6.10 AdminSignup — POST /admin/signup (no auth)
+  AdminSignupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-admin-signup-${Environment}
+      Handler: handlers.admin.signup.handler
+      CodeUri: src/
+      Timeout: 15
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref UserPool
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TenantsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminAddUserToGroup
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        Signup:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/signup
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  # TenantConfigHandler — GET/PUT /admin/tenant (Admin JWT)
+  TenantConfigFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-tenant-config-${Environment}
+      Handler: handlers.admin.tenant_config.handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TenantsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:CreateSecret
+                - secretsmanager:UpdateSecret
+              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:sotto/*
+      Events:
+        GetTenant:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/tenant
+            Method: GET
+        UpdateTenant:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/tenant
+            Method: PUT
+
+  # 6.11 AgentInvite — POST /admin/agents/invite (Admin JWT)
+  AgentInviteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-agent-invite-${Environment}
+      Handler: handlers.admin.agent_invite.handler
+      CodeUri: src/
+      Timeout: 15
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref UserPool
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AgentsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminAddUserToGroup
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        Invite:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/agents/invite
+            Method: POST
+
+  # AgentConfirm — POST /admin/agents/confirm (Agent JWT)
+  AgentConfirmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-agent-confirm-${Environment}
+      Handler: handlers.admin.agent_confirm.handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AgentsTable
+      Events:
+        Confirm:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/agents/confirm
+            Method: POST
+
+  # 6.12 NumberMappingHandler — CRUD /admin/numbers (Admin JWT)
+  NumberMappingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-number-mapping-${Environment}
+      Handler: handlers.admin.number_mapping.handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NumberMappingsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref AgentsTable
+      Events:
+        ListNumbers:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/numbers
+            Method: GET
+        CreateNumber:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/numbers
+            Method: POST
+        UpdateNumber:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/numbers/{identifier}
+            Method: PUT
+        DeleteNumber:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/numbers/{identifier}
+            Method: DELETE
+
+  # =========================================================
+  # Agent API Functions (Step 8)
+  # =========================================================
+
+  # 6.13 CallHistoryHandler — GET /calls (Agent) + GET /admin/calls (Admin)
+  CallHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-call-history-${Environment}
+      Handler: handlers.agents.call_history.handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CallsTable
+      Events:
+        AgentCalls:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /calls
+            Method: GET
+        AdminCalls:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /admin/calls
+            Method: GET
+
+  # CallDetailHandler — GET /calls/{call_id} (Agent JWT)
+  CallDetailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-call-detail-${Environment}
+      Handler: handlers.agents.call_detail.handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CallsTable
+        - S3ReadPolicy:
+            BucketName: !Ref RecordingsBucket
+      Events:
+        GetCall:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /calls/{call_id}
+            Method: GET
+
+  # 6.14 NotesHandler — PUT /calls/{call_id}/notes (Agent JWT)
+  NotesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-notes-${Environment}
+      Handler: handlers.agents.notes.handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CallsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CallsTable
+      Events:
+        UpdateNotes:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /calls/{call_id}/notes
+            Method: PUT
+
+  # 6.15 RolloutManager — POST /internal/rollout (IAM auth only)
+  RolloutManagerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-rollout-manager-${Environment}
+      Handler: handlers.admin.rollout_manager.handler
+      CodeUri: src/
+      Timeout: 30
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TenantsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DeploymentsTable
+      Events:
+        Rollout:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /internal/rollout
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  # HealthCheck — GET /internal/health (no auth)
+  HealthCheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-health-check-${Environment}
+      Handler: handlers.internal.health_check.handler
+      CodeUri: src/
+      Timeout: 5
+      MemorySize: 128
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Events:
+        Health:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /internal/health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  # Pre-token generation trigger — injects tenant_id, agent_id, role into JWT
+  PreTokenGenerationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-pre-token-${Environment}
+      Handler: handlers.admin.pre_token.handler
+      CodeUri: src/
+      Timeout: 5
+      MemorySize: 256
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !If [IsProd, Canary10Percent5Minutes, AllAtOnce]
+        Alarms:
+          - !Ref ErrorRateAlarm
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref AgentsTable
+
+  PreTokenPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PreTokenGenerationFunction
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub sotto-common-${Environment}
+      Description: Sotto shared Python package — logger, db, s3, secrets, models, adapters
+      ContentUri: src/layers/common/
+      CompatibleRuntimes:
+        - python3.13
+      CompatibleArchitectures:
+        - arm64
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: python3.13
+
+  # =========================================================
+  # DynamoDB Tables
+  # =========================================================
+
+  # 5.1 Tenants — one record per agency
+  TenantsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub sotto-tenants-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      AttributeDefinitions:
+        - AttributeName: tenant_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: tenant_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: status-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # 5.2 Agents — one record per agent per tenant
+  AgentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub sotto-agents-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      AttributeDefinitions:
+        - AttributeName: tenant_id
+          AttributeType: S
+        - AttributeName: agent_id
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: cognito_sub
+          AttributeType: S
+      KeySchema:
+        - AttributeName: tenant_id
+          KeyType: HASH
+        - AttributeName: agent_id
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: email-index
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+            - AttributeName: tenant_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: cognito-index
+          KeySchema:
+            - AttributeName: cognito_sub
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # 5.3 Number Mappings — phone number / extension / email → agent
+  NumberMappingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub sotto-number-mappings-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      AttributeDefinitions:
+        - AttributeName: tenant_id
+          AttributeType: S
+        - AttributeName: identifier
+          AttributeType: S
+      KeySchema:
+        - AttributeName: tenant_id
+          KeyType: HASH
+        - AttributeName: identifier
+          KeyType: RANGE
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # 5.4 Calls — one record per call
+  # agent_date_key stores the composite value "{tenant_id}#{agent_id}"
+  CallsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub sotto-calls-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      AttributeDefinitions:
+        - AttributeName: tenant_id
+          AttributeType: S
+        - AttributeName: call_id
+          AttributeType: S
+        - AttributeName: agent_date_key
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: tenant_id
+          KeyType: HASH
+        - AttributeName: call_id
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        # agent-date-index: PK = "{tenant_id}#{agent_id}", SK = created_at
+        - IndexName: agent-date-index
+          KeySchema:
+            - AttributeName: agent_date_key
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # status-index: find calls in a given status per tenant
+        - IndexName: status-index
+          KeySchema:
+            - AttributeName: tenant_id
+              KeyType: HASH
+            - AttributeName: status
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # 5.5 WebSocket Connections — short-lived connection registry
+  WsConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub sotto-ws-connections-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      AttributeDefinitions:
+        - AttributeName: connection_id
+          AttributeType: S
+        - AttributeName: agent_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connection_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: agent-index
+          KeySchema:
+            - AttributeName: agent_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # 5.6 Feature Flags — per-feature rollout by deployment tier
+  FeatureFlagsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub sotto-feature-flags-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      AttributeDefinitions:
+        - AttributeName: flag_name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: flag_name
+          KeyType: HASH
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # 5.7 Deployments — prod deployment tracking for rollout management
+  DeploymentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub sotto-deployments-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      AttributeDefinitions:
+        - AttributeName: deployment_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: deployment_id
+          KeyType: HASH
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # =========================================================
+  # SQS Queues (4.7)
+  # =========================================================
+
+  # DLQs first — main queues reference them
+  CallEventsDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub sotto-call-events-dlq-${Environment}
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  CallEventsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub sotto-call-events-${Environment}
+      VisibilityTimeout: 60
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt CallEventsDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  TranscriptionResultsDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub sotto-transcription-results-dlq-${Environment}
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  TranscriptionResultsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub sotto-transcription-results-${Environment}
+      VisibilityTimeout: 30
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt TranscriptionResultsDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # =========================================================
+  # S3 Buckets (4.8)
+  # =========================================================
+
+  # Call recordings (MP3/WAV) and transcripts (JSON)
+  RecordingsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub sotto-recordings-${AWS::AccountId}-${Environment}
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: TieredStorage
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 365
+                StorageClass: GLACIER
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # SAM deployment artifacts and Lambda zip files
+  # NOTE: This bucket must exist before first `sam deploy`.
+  # Bootstrap: create manually, then this resource adopts it on stack creation.
+  ArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub sotto-artifacts-${AWS::AccountId}-${Environment}
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 90
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Admin portal static assets (React build) — served via CloudFront
+  PortalBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub sotto-portal-${AWS::AccountId}-${Environment}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # =========================================================
+  # Cognito User Pool (4.5)
+  # =========================================================
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub sotto-user-pool-${Environment}
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      LambdaConfig:
+        PreTokenGeneration: !GetAtt PreTokenGenerationFunction.Arn
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+      Schema:
+        - AttributeDataType: String
+          Name: tenant_id
+          Mutable: true
+        - AttributeDataType: String
+          Name: role
+          Mutable: true
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UserPoolTags:
+        Project: sotto
+        Environment: !Ref Environment
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: !Sub sotto-client-${Environment}
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      PreventUserExistenceErrors: ENABLED
+
+  AdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Admins
+      UserPoolId: !Ref UserPool
+      Description: Tenant administrators
+
+  AgentsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Agents
+      UserPoolId: !Ref UserPool
+      Description: Insurance agents
+
+  # =========================================================
+  # CloudFront Distribution (4.9)
+  # =========================================================
+
+  # Origin Access Control — CloudFront signs requests to S3 with sigv4
+  PortalOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub sotto-portal-oac-${Environment}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # Bucket policy: only CloudFront (via OAC) may GET objects
+  PortalBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PortalBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${PortalBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${PortalDistribution}
+
+  PortalDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub Sotto Admin Portal (${Environment})
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: PortalS3Origin
+            DomainName: !GetAtt PortalBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !Ref PortalOriginAccessControl
+        DefaultCacheBehavior:
+          TargetOriginId: PortalS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          # CachingOptimized managed policy
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        CacheBehaviors:
+          # index.html: never cache so deploys are reflected immediately
+          - PathPattern: index.html
+            TargetOriginId: PortalS3Origin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            # CachingDisabled managed policy
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+        CustomErrorResponses:
+          # SPA routing: 403/404 from S3 → serve index.html
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # =========================================================
+  # SNS Alert Topic (Step 10)
+  # =========================================================
+
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub sotto-alerts-${Environment}
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref SnsAlertEmail
+      Tags:
+        - Key: Project
+          Value: sotto
+        - Key: Environment
+          Value: !Ref Environment
+
+  # =========================================================
+  # CloudWatch Alarms (Step 10 — prod only)
+  # =========================================================
+
+  WebhookErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsProd
+    Properties:
+      AlarmName: !Sub sotto-webhook-errors-${Environment}
+      AlarmDescription: ProviderWebhookHandler errors > 5 in 5 minutes
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ProviderWebhookFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertTopic
+
+  RecordingDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsProd
+    Properties:
+      AlarmName: !Sub sotto-recording-dlq-${Environment}
+      AlarmDescription: Messages visible in call-events DLQ > 0
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt CallEventsDLQ.QueueName
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertTopic
+
+  TranscriptionFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsProd
+    Properties:
+      AlarmName: !Sub sotto-transcription-failures-${Environment}
+      AlarmDescription: TranscriptionResultProcessor errors > 3 in 10 minutes
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref TranscriptionResultProcessorFunction
+      Statistic: Sum
+      Period: 600
+      EvaluationPeriods: 1
+      Threshold: 3
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertTopic
+
+  HighLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsProd
+    Properties:
+      AlarmName: !Sub sotto-high-latency-${Environment}
+      AlarmDescription: RecordingProcessor P95 duration > 30000ms
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref RecordingProcessorFunction
+      ExtendedStatistic: p95
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 30000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertTopic
+
+  ErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsProd
+    Properties:
+      AlarmName: !Sub sotto-error-rate-${Environment}
+      AlarmDescription: Lambda error rate > 1% for 5 minutes across all functions
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0.01
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertTopic
+
+# =========================================================
+# Outputs
+# =========================================================
+Outputs:
+
+  # Common Layer
+  CommonLayerArn:
+    Value: !Ref CommonLayer
+    Export:
+      Name: !Sub sotto-${Environment}-CommonLayerArn
+
+  # DynamoDB
+  TenantsTableName:
+    Value: !Ref TenantsTable
+    Export:
+      Name: !Sub sotto-${Environment}-TenantsTable
+
+  AgentsTableName:
+    Value: !Ref AgentsTable
+    Export:
+      Name: !Sub sotto-${Environment}-AgentsTable
+
+  NumberMappingsTableName:
+    Value: !Ref NumberMappingsTable
+    Export:
+      Name: !Sub sotto-${Environment}-NumberMappingsTable
+
+  CallsTableName:
+    Value: !Ref CallsTable
+    Export:
+      Name: !Sub sotto-${Environment}-CallsTable
+
+  WsConnectionsTableName:
+    Value: !Ref WsConnectionsTable
+    Export:
+      Name: !Sub sotto-${Environment}-WsConnectionsTable
+
+  FeatureFlagsTableName:
+    Value: !Ref FeatureFlagsTable
+    Export:
+      Name: !Sub sotto-${Environment}-FeatureFlagsTable
+
+  DeploymentsTableName:
+    Value: !Ref DeploymentsTable
+    Export:
+      Name: !Sub sotto-${Environment}-DeploymentsTable
+
+  # SQS
+  CallEventsQueueUrl:
+    Value: !Ref CallEventsQueue
+    Export:
+      Name: !Sub sotto-${Environment}-CallEventsQueueUrl
+
+  CallEventsQueueArn:
+    Value: !GetAtt CallEventsQueue.Arn
+    Export:
+      Name: !Sub sotto-${Environment}-CallEventsQueueArn
+
+  CallEventsDLQArn:
+    Value: !GetAtt CallEventsDLQ.Arn
+    Export:
+      Name: !Sub sotto-${Environment}-CallEventsDLQArn
+
+  TranscriptionResultsQueueUrl:
+    Value: !Ref TranscriptionResultsQueue
+    Export:
+      Name: !Sub sotto-${Environment}-TranscriptionResultsQueueUrl
+
+  TranscriptionResultsQueueArn:
+    Value: !GetAtt TranscriptionResultsQueue.Arn
+    Export:
+      Name: !Sub sotto-${Environment}-TranscriptionResultsQueueArn
+
+  TranscriptionResultsDLQArn:
+    Value: !GetAtt TranscriptionResultsDLQ.Arn
+    Export:
+      Name: !Sub sotto-${Environment}-TranscriptionResultsDLQArn
+
+  # S3
+  RecordingsBucketName:
+    Value: !Ref RecordingsBucket
+    Export:
+      Name: !Sub sotto-${Environment}-RecordingsBucket
+
+  ArtifactsBucketName:
+    Value: !Ref ArtifactsBucket
+    Export:
+      Name: !Sub sotto-${Environment}-ArtifactsBucket
+
+  PortalBucketName:
+    Value: !Ref PortalBucket
+    Export:
+      Name: !Sub sotto-${Environment}-PortalBucket
+
+  # Cognito
+  UserPoolId:
+    Value: !Ref UserPool
+    Export:
+      Name: !Sub sotto-${Environment}-UserPoolId
+
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+    Export:
+      Name: !Sub sotto-${Environment}-UserPoolClientId
+
+  # CloudFront
+  PortalDistributionId:
+    Value: !Ref PortalDistribution
+    Export:
+      Name: !Sub sotto-${Environment}-PortalDistributionId
+
+  PortalDistributionDomain:
+    Value: !GetAtt PortalDistribution.DomainName
+    Export:
+      Name: !Sub sotto-${Environment}-PortalDistributionDomain
+
+  # Admin API
+  AdminSignupFunctionArn:
+    Value: !GetAtt AdminSignupFunction.Arn
+    Export:
+      Name: !Sub sotto-${Environment}-AdminSignupFunctionArn
+
+  RolloutManagerFunctionArn:
+    Value: !GetAtt RolloutManagerFunction.Arn
+    Export:
+      Name: !Sub sotto-${Environment}-RolloutManagerFunctionArn
+
+  PreTokenGenerationFunctionArn:
+    Value: !GetAtt PreTokenGenerationFunction.Arn
+    Export:
+      Name: !Sub sotto-${Environment}-PreTokenGenerationFunctionArn
+
+  # Agent API
+  CallHistoryFunctionArn:
+    Value: !GetAtt CallHistoryFunction.Arn
+    Export:
+      Name: !Sub sotto-${Environment}-CallHistoryFunctionArn
+
+  CallDetailFunctionArn:
+    Value: !GetAtt CallDetailFunction.Arn
+    Export:
+      Name: !Sub sotto-${Environment}-CallDetailFunctionArn
+
+  NotesFunctionArn:
+    Value: !GetAtt NotesFunction.Arn
+    Export:
+      Name: !Sub sotto-${Environment}-NotesFunctionArn
+
+  # HTTP API
+  SottoHttpApiUrl:
+    Value: !Sub https://${SottoHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+    Export:
+      Name: !Sub sotto-${Environment}-HttpApiUrl
+
+  # WebSocket API
+  SottoWebSocketApiId:
+    Value: !Ref SottoWebSocketApi
+    Export:
+      Name: !Sub sotto-${Environment}-WebSocketApiId
+
+  SottoWebSocketApiEndpoint:
+    Value: !Sub wss://${SottoWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+    Export:
+      Name: !Sub sotto-${Environment}-WebSocketApiEndpoint

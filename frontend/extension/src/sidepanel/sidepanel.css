@@ -1,0 +1,468 @@
+/* Sotto Cockpit — Side Panel Styles */
+
+:root {
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-bg: #f9fafb;
+  --color-card: #ffffff;
+  --color-border: #e5e7eb;
+  --color-text: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+  --radius: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* =========================================================
+   Header
+   ========================================================= */
+
+header {
+  background: var(--color-card);
+  border-bottom: 1px solid var(--color-border);
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* =========================================================
+   Connection status dot
+   ========================================================= */
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--color-text-muted);
+}
+
+.status-dot.connected {
+  background: var(--color-success);
+}
+
+.status-dot.disconnected,
+.status-dot.error {
+  background: var(--color-error);
+}
+
+.status-dot.auth_error {
+  background: var(--color-warning);
+}
+
+/* =========================================================
+   Buttons
+   ========================================================= */
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-secondary:hover {
+  background: var(--color-border);
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-text:hover {
+  color: var(--color-text);
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* =========================================================
+   Login
+   ========================================================= */
+
+.login-container {
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 60px 24px 24px;
+  text-align: center;
+}
+
+.login-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.login-subtitle {
+  color: var(--color-text-secondary);
+  margin-bottom: 32px;
+}
+
+.form-group {
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.form-group input:focus {
+  border-color: var(--color-primary);
+}
+
+.error-text {
+  color: var(--color-error);
+  font-size: 13px;
+  min-height: 20px;
+  margin-bottom: 8px;
+}
+
+/* =========================================================
+   Center content (idle, ringing, active, ended)
+   ========================================================= */
+
+.center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 52px);
+  padding: 24px;
+  text-align: center;
+}
+
+.state-panel:first-of-type .center-content {
+  /* Login panel - no header offset */
+  min-height: 100vh;
+}
+
+.idle-icon {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.status-text {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.status-hint {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* =========================================================
+   Ringing animation
+   ========================================================= */
+
+.ring-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-warning);
+  margin-bottom: 20px;
+}
+
+.ring-circle.pulsing {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+.call-alert {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-warning);
+  margin-bottom: 8px;
+}
+
+.call-number {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.client-match {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+/* =========================================================
+   Active call
+   ========================================================= */
+
+.active-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-success);
+  margin-bottom: 16px;
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.call-timer {
+  font-size: 32px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 8px;
+}
+
+/* =========================================================
+   Spinner (ended / transcribing)
+   ========================================================= */
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  margin-bottom: 20px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* =========================================================
+   Call detail (transcript_ready + complete)
+   ========================================================= */
+
+.call-detail {
+  padding: 16px;
+}
+
+.call-info-bar {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+
+.info-item .label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-item .value {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.section {
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
+/* =========================================================
+   Transcript
+   ========================================================= */
+
+.transcript-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.transcript-line {
+  padding: 6px 0;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--color-bg);
+}
+
+.transcript-line:last-child {
+  border-bottom: none;
+}
+
+.transcript-line .speaker {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.speaker-agent .speaker {
+  color: var(--color-primary);
+}
+
+.speaker-caller .speaker {
+  color: var(--color-success);
+}
+
+/* =========================================================
+   Summary
+   ========================================================= */
+
+.summary-content {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px;
+  line-height: 1.6;
+}
+
+.action-items-list {
+  list-style: none;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+
+.action-items-list li {
+  padding: 6px 0 6px 20px;
+  position: relative;
+  border-bottom: 1px solid var(--color-bg);
+}
+
+.action-items-list li:last-child {
+  border-bottom: none;
+}
+
+.action-items-list li::before {
+  content: "\2022";
+  color: var(--color-primary);
+  font-weight: 700;
+  position: absolute;
+  left: 4px;
+}
+
+/* =========================================================
+   Notes
+   ========================================================= */
+
+.notes-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  margin-bottom: 8px;
+}
+
+.notes-input:focus {
+  border-color: var(--color-primary);
+}

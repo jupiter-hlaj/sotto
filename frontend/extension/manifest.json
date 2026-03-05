@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Cockpit — AI Call Intelligence",
+  "version": "1.0.0",
+  "description": "AI-powered call intelligence for insurance agencies",
+  "permissions": ["sidePanel", "storage", "identity", "alarms"],
+  "host_permissions": [
+    "https://*.useappliedepic.com/*",
+    "https://*.sotto.io/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service_worker.js"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.useappliedepic.com/*"],
+      "js": ["src/content/epic_injector.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Open Cockpit"
+  }
+}

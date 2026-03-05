@@ -1,0 +1,97 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+    inputs:
+      deployment_reason:
+        description: 'Reason for manual deploy'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    environment: prod          # Requires manual approval in GitHub UI
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate deployment ID
+        id: deploy-id
+        run: echo "deployment_id=$(uuidgen)" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.PROD_OIDC_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - uses: aws-actions/setup-sam@v2
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+
+      - name: SAM Build
+        run: sam build --template backend/template.yaml --use-container
+
+      - name: SAM Deploy (prod — canary strategy)
+        run: |
+          sam deploy \
+            --stack-name sotto-prod \
+            --s3-bucket sotto-artifacts-${{ secrets.AWS_ACCOUNT_ID }}-prod \
+            --parameter-overrides Environment=prod LogLevel=INFO \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --region ${{ secrets.AWS_REGION }}
+        # SAM DeploymentPreference in template.yaml handles canary routing
+
+      - name: Record deployment
+        run: |
+          aws dynamodb put-item \
+            --table-name sotto-deployments-prod \
+            --item '{
+              "deployment_id": {"S": "${{ steps.deploy-id.outputs.deployment_id }}"},
+              "git_sha": {"S": "${{ github.sha }}"},
+              "git_tag": {"S": "${{ github.ref_name }}"},
+              "status": {"S": "canary"},
+              "deployed_at": {"S": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"},
+              "deployed_by": {"S": "${{ github.run_id }}"}
+            }'
+
+      - name: Monitor canary for 10 minutes
+        run: |
+          # Check CloudWatch error rate alarm every 60s for 10 minutes
+          for i in $(seq 1 10); do
+            ALARM_STATE=$(aws cloudwatch describe-alarms \
+              --alarm-names "sotto-error-rate-prod" \
+              --query "MetricAlarms[0].StateValue" \
+              --output text)
+            echo "Minute $i: Error rate alarm = $ALARM_STATE"
+            if [ "$ALARM_STATE" = "ALARM" ]; then
+              echo "ERROR RATE ALARM TRIGGERED — initiating rollback"
+              exit 1
+            fi
+            sleep 60
+          done
+          echo "Canary period passed. Deployment stable."
+
+      - name: Deploy frontend
+        if: success()
+        run: |
+          cd frontend/admin-portal
+          npm ci
+          VITE_API_URL=$(aws cloudformation describe-stacks \
+            --stack-name sotto-prod \
+            --query "Stacks[0].Outputs[?OutputKey=='SottoHttpApiUrl'].OutputValue" \
+            --output text)
+          VITE_API_URL=$VITE_API_URL npm run build
+          BUCKET=sotto-portal-${{ secrets.AWS_ACCOUNT_ID }}-prod
+          aws s3 sync dist/ s3://$BUCKET --delete
+          CF_ID=$(aws cloudformation describe-stacks \
+            --stack-name sotto-prod \
+            --query "Stacks[0].Outputs[?OutputKey=='PortalDistributionId'].OutputValue" \
+            --output text)
+          aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*"

@@ -1,0 +1,52 @@
+name: Emergency Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_id:
+        description: 'Deployment ID to roll back'
+        required: true
+      reason:
+        description: 'Reason for rollback'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.PROD_OIDC_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Execute rollback via SAM
+        run: |
+          # SAM CodeDeploy rollback — reverts Lambda alias to previous version
+          aws deploy stop-deployment \
+            --deployment-id $(aws deploy list-deployments \
+              --application-name sotto-prod \
+              --deployment-group-name sotto-prod-DeploymentGroup \
+              --query "deployments[0]" \
+              --output text) \
+            --auto-rollback-enabled
+
+      - name: Update deployment record
+        run: |
+          aws dynamodb update-item \
+            --table-name sotto-deployments-prod \
+            --key '{"deployment_id": {"S": "${{ inputs.deployment_id }}"}}' \
+            --update-expression "SET #s = :s, rolled_back_at = :t" \
+            --expression-attribute-names '{"#s": "status"}' \
+            --expression-attribute-values '{":s":{"S":"rolled_back"},":t":{"S":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}}'
+
+      - name: Notify team
+        run: |
+          aws sns publish \
+            --topic-arn arn:aws:sns:${{ secrets.AWS_REGION }}:${{ secrets.AWS_ACCOUNT_ID }}:sotto-alerts-prod \
+            --subject "ROLLBACK EXECUTED — ${{ inputs.reason }}" \
+            --message "Deployment ${{ inputs.deployment_id }} rolled back. Reason: ${{ inputs.reason }}. Run ID: ${{ github.run_id }}"

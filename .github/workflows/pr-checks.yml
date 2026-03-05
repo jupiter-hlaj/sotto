@@ -1,0 +1,34 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+      - run: pip install ruff bandit
+      - run: ruff check backend/src/          # Linting
+      - run: ruff format --check backend/src/ # Formatting check
+      - run: bandit -r backend/src/ -ll       # Security scan
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+      - run: pip install -r backend/requirements-dev.txt
+      - run: pytest backend/src/tests/ -v --tb=short --cov=backend/src --cov-report=xml
+      - uses: codecov/codecov-action@v4   # Optional coverage reporting
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/setup-sam@v2
+      - run: sam validate --template backend/template.yaml --lint
