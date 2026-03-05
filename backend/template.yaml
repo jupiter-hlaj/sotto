@@ -96,11 +96,6 @@ Resources:
       Timeout: 10
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Environment:
         Variables:
           SQS_CALL_EVENTS_URL: !Ref CallEventsQueue
@@ -145,11 +140,6 @@ Resources:
       Timeout: 60
       MemorySize: 512
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Environment:
         Variables:
           TRANSCRIPTION_INIT_FUNCTION: !Ref TranscriptionInitFunction
@@ -192,11 +182,6 @@ Resources:
       Timeout: 30
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref CallsTable
@@ -217,11 +202,6 @@ Resources:
       Timeout: 30
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Environment:
         Variables:
           AI_SUMMARIZER_FUNCTION: !Sub sotto-ai-summarizer-${Environment}
@@ -263,11 +243,6 @@ Resources:
       Timeout: 60
       MemorySize: 512
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Environment:
         Variables:
           WEBSOCKET_API_ENDPOINT: !Sub https://${SottoWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
@@ -405,11 +380,6 @@ Resources:
       Timeout: 10
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Environment:
         Variables:
           COGNITO_USER_POOL_ID: !Ref UserPool
@@ -427,11 +397,6 @@ Resources:
       Timeout: 10
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref WsConnectionsTable
@@ -446,11 +411,6 @@ Resources:
       Timeout: 10
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Environment:
         Variables:
           WEBSOCKET_API_ENDPOINT: !Sub https://${SottoWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
@@ -474,11 +434,6 @@ Resources:
       Timeout: 15
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Environment:
         Variables:
           USER_POOL_ID: !Ref UserPool
@@ -512,11 +467,6 @@ Resources:
       Timeout: 10
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TenantsTable
@@ -550,11 +500,6 @@ Resources:
       Timeout: 15
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Environment:
         Variables:
           USER_POOL_ID: !Ref UserPool
@@ -591,11 +536,6 @@ Resources:
       Timeout: 10
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref AgentsTable
@@ -617,11 +557,6 @@ Resources:
       Timeout: 10
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref NumberMappingsTable
@@ -667,11 +602,6 @@ Resources:
       Timeout: 10
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref CallsTable
@@ -699,11 +629,6 @@ Resources:
       Timeout: 10
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref CallsTable
@@ -733,11 +658,6 @@ Resources:
       Timeout: 10
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref CallsTable
@@ -761,11 +681,6 @@ Resources:
       Timeout: 30
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TenantsTable
@@ -791,11 +706,6 @@ Resources:
       Timeout: 5
       MemorySize: 128
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Events:
         Health:
           Type: HttpApi
@@ -816,11 +726,6 @@ Resources:
       Timeout: 5
       MemorySize: 256
       AutoPublishAlias: live
-      DeploymentPreference:
-        Enabled: !If [IsProd, true, false]
-        Type: Canary10Percent5Minutes
-        Alarms:
-          - !Ref ErrorRateAlarm
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref AgentsTable
