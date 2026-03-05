@@ -69,7 +69,15 @@ jobs:
             --stack-name sotto-dev \
             --query "Stacks[0].Outputs[?OutputKey=='SottoHttpApiUrl'].OutputValue" \
             --output text)
-          cd frontend/admin-portal && npm ci && VITE_API_URL=$VITE_API_URL npm run build
+          VITE_USER_POOL_CLIENT_ID=$(aws cloudformation describe-stacks \
+            --stack-name sotto-dev \
+            --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" \
+            --output text)
+          cd frontend/admin-portal && npm ci && \
+            VITE_API_URL=$VITE_API_URL \
+            VITE_USER_POOL_CLIENT_ID=$VITE_USER_POOL_CLIENT_ID \
+            VITE_AWS_REGION=${{ secrets.AWS_REGION }} \
+            npm run build
       - name: Sync to S3
         run: |
           BUCKET=sotto-portal-${{ secrets.AWS_ACCOUNT_ID }}-dev

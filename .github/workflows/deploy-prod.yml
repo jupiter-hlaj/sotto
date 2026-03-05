@@ -92,7 +92,14 @@ jobs:
             --stack-name sotto-prod \
             --query "Stacks[0].Outputs[?OutputKey=='SottoHttpApiUrl'].OutputValue" \
             --output text)
-          VITE_API_URL=$VITE_API_URL npm run build
+          VITE_USER_POOL_CLIENT_ID=$(aws cloudformation describe-stacks \
+            --stack-name sotto-prod \
+            --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" \
+            --output text)
+          VITE_API_URL=$VITE_API_URL \
+            VITE_USER_POOL_CLIENT_ID=$VITE_USER_POOL_CLIENT_ID \
+            VITE_AWS_REGION=${{ secrets.AWS_REGION }} \
+            npm run build
           BUCKET=sotto-portal-${{ secrets.AWS_ACCOUNT_ID }}-prod
           aws s3 sync dist/ s3://$BUCKET --delete
           CF_ID=$(aws cloudformation describe-stacks \
