@@ -63,7 +63,13 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
-      - run: cd frontend/admin-portal && npm ci && npm run build
+      - name: Build frontend
+        run: |
+          VITE_API_URL=$(aws cloudformation describe-stacks \
+            --stack-name sotto-dev \
+            --query "Stacks[0].Outputs[?OutputKey=='SottoHttpApiUrl'].OutputValue" \
+            --output text)
+          cd frontend/admin-portal && npm ci && VITE_API_URL=$VITE_API_URL npm run build
       - name: Sync to S3
         run: |
           BUCKET=sotto-portal-${{ secrets.AWS_ACCOUNT_ID }}-dev
