@@ -50,9 +50,13 @@ def _route(event: dict, start_time: float) -> dict:
         return _response(401, {"error": "Missing tenant_id in claims"})
 
     route_key = event.get("routeKey", "")
-    groups = claims.get("cognito:groups", [])
-    if isinstance(groups, str):
-        groups = [groups]
+    groups_raw = claims.get("cognito:groups", [])
+    if isinstance(groups_raw, str):
+        # API Gateway serializes ["Admins"] as the string "[Admins]"
+        inner = groups_raw.strip("[] ")
+        groups = [g.strip() for g in inner.split(",")] if inner else []
+    else:
+        groups = groups_raw
 
     logger.debug("Routing call history", extra={"route_key": route_key, "groups": groups, "tenant_id": tenant_id})
 
