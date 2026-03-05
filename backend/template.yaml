@@ -121,14 +121,6 @@ Resources:
             Method: POST
             Auth:
               Authorizer: NONE
-        HealthGet:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref SottoHttpApi
-            Path: /health
-            Method: GET
-            Auth:
-              Authorizer: NONE
 
   # 6.2 RecordingProcessor — downloads recording, uploads to S3, triggers transcription
   RecordingProcessorFunction:
@@ -708,6 +700,14 @@ Resources:
       AutoPublishAlias: live
       Events:
         Health:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        InternalHealth:
           Type: HttpApi
           Properties:
             ApiId: !Ref SottoHttpApi
