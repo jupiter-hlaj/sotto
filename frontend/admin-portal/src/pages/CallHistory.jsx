@@ -30,7 +30,7 @@ export default function CallHistory() {
   useEffect(() => {
     loadCalls();
     // Auto-refresh every 30 seconds
-    intervalRef.current = setInterval(loadCalls, 30_000);
+    intervalRef.current = setInterval(loadCalls, 5_000);
     return () => clearInterval(intervalRef.current);
   }, []);
 
@@ -50,7 +50,7 @@ export default function CallHistory() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Call History</h1>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-400">Auto-refreshes every 30s</span>
+          <span className="text-xs text-gray-400">Auto-refreshes every 5s</span>
           <input
             type="text"
             placeholder="Filter by number, status, or ID..."
