@@ -133,7 +133,11 @@ def _handle_recording_url(event: dict, start_time: float) -> dict:
     logger.debug("Generating presigned URL", extra={"tenant_id": tenant_id, "call_id": call_id})
     url = _get_s3_client().generate_presigned_url(
         "get_object",
-        Params={"Bucket": RECORDINGS_BUCKET, "Key": recording_key},
+        Params={
+            "Bucket": RECORDINGS_BUCKET,
+            "Key": recording_key,
+            "ResponseContentDisposition": f'attachment; filename="call-{call_id}.mp3"',
+        },
         ExpiresIn=900,
     )
 
