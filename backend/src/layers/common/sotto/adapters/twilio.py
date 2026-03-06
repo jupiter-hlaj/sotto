@@ -40,10 +40,11 @@ class TwilioAdapter(BaseAdapter):
 
     def is_call_ended(self, payload: dict) -> bool:
         """Return True if call is completed AND has a recording."""
-        return (
+        call_completed = (
             payload.get("CallStatus") == "completed"
-            and payload.get("RecordingSid") is not None
+            or payload.get("DialCallStatus") == "completed"
         )
+        return call_completed and payload.get("RecordingSid") is not None
 
     @tracer.capture_method
     def normalize(self, payload: dict) -> NormalizedCallEvent:
