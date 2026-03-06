@@ -5,11 +5,12 @@
 importScripts("../shared/auth.js");
 
 // Configure after deployment — sotto-{env}-WebSocketApiEndpoint SAM output
-const WS_URL = ""; // e.g. wss://xxx.execute-api.ca-central-1.amazonaws.com/dev
+const WS_URL = "wss://jf83oxo70b.execute-api.us-east-1.amazonaws.com/dev";
 
 // Ephemeral (OK to lose on worker restart — reconnect handles it)
 let ws = null;
 let reconnectAttempt = 0;
+let keepaliveInterval = null;
 const MAX_BACKOFF_MS = 30000;
 
 // =========================================================
@@ -62,7 +63,20 @@ function connectWebSocket(token) {
     reconnectAttempt = 0;
     setConnectionStatus("connected");
 
-    // Keepalive ping every 5 minutes
+    // Send immediate ping — the server's pong response is an incoming
+    // WebSocket message, which resets Chrome MV3's 30-second idle timer.
+    ws.send(JSON.stringify({ action: "ping" }));
+
+    // Keep sending pings every 20s so Chrome never considers the worker idle.
+    if (keepaliveInterval) clearInterval(keepaliveInterval);
+    keepaliveInterval = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: "ping" }));
+      }
+    }, 20000);
+
+    // Backup alarm — if the worker is ever terminated despite the above,
+    // this wakes it up and tryConnect() on script evaluation reconnects.
     chrome.alarms.create("ws-ping", { periodInMinutes: 5 });
 
     // Schedule token refresh before the 60-minute expiry
@@ -80,6 +94,10 @@ function connectWebSocket(token) {
 
   ws.onclose = (event) => {
     ws = null;
+    if (keepaliveInterval) {
+      clearInterval(keepaliveInterval);
+      keepaliveInterval = null;
+    }
     chrome.alarms.clear("ws-ping");
 
     // 410 Gone / 4410 — stale connection, reconnect immediately with fresh token

@@ -1,12 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Cockpit — AI Call Intelligence",
+  "name": "Sotto — AI Call Intelligence",
   "version": "1.0.0",
   "description": "AI-powered call intelligence for insurance agencies",
-  "permissions": ["sidePanel", "storage", "identity", "alarms"],
+  "permissions": ["sidePanel", "storage", "identity", "alarms", "tabs"],
   "host_permissions": [
-    "https://*.useappliedepic.com/*",
-    "https://*.sotto.io/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "src/background/service_worker.js"
@@ -22,6 +21,6 @@
     }
   ],
   "action": {
-    "default_title": "Open Cockpit"
+    "default_title": "Open Sotto"
   }
 }

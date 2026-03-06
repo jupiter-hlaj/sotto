@@ -5,9 +5,9 @@
 const Auth = (() => {
   // Configure these after deployment — values from SAM stack outputs
   const CONFIG = {
-    region: "ca-central-1",
-    userPoolId: "", // sotto-{env}-UserPoolId output
-    clientId: "", // sotto-{env}-UserPoolClientId output
+    region: "us-east-1",
+    userPoolId: "us-east-1_wwLPR7DXg",
+    clientId: "44nd8kjrg6hvnr1hgp132n4u4t",
   };
 
   const COGNITO_ENDPOINT = `https://cognito-idp.${CONFIG.region}.amazonaws.com/`;

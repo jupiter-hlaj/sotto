@@ -3,136 +3,122 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cockpit</title>
+  <title>Sotto</title>
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
 
-  <!-- Header (hidden on login screen) -->
-  <header id="header" class="hidden">
-    <div class="header-bar">
-      <h1 class="header-title">Cockpit</h1>
-      <div class="header-right">
-        <span id="connection-status" class="status-dot" title="Connecting..."></span>
-        <button id="logout-btn" class="btn-text" title="Sign out">Sign Out</button>
-      </div>
-    </div>
-  </header>
-
   <!-- ===== LOGIN ===== -->
-  <div id="panel-login" class="state-panel">
+  <div id="view-login" class="view active">
     <div class="login-container">
-      <h2 class="login-title">Cockpit</h2>
-      <p class="login-subtitle">AI Call Intelligence</p>
+      <div class="logo-mark">S</div>
+      <h1 class="logo-title">Sotto</h1>
+      <p class="logo-tagline">AI Call Intelligence</p>
       <form id="login-form">
-        <div class="form-group">
+        <div class="form-field">
           <label for="email">Email</label>
-          <input type="email" id="email" required autocomplete="email" placeholder="agent@agency.com">
+          <input type="email" id="email" required autocomplete="email" placeholder="you@agency.com">
         </div>
-        <div class="form-group">
+        <div class="form-field">
           <label for="password">Password</label>
           <input type="password" id="password" required autocomplete="current-password">
         </div>
-        <div id="login-error" class="error-text"></div>
-        <button type="submit" id="login-submit" class="btn-primary full-width">Sign In</button>
+        <div id="new-password-group" class="form-field hidden">
+          <label for="new-password">New Password</label>
+          <input type="password" id="new-password" autocomplete="new-password" placeholder="Choose a permanent password">
+        </div>
+        <div id="login-error" class="error-msg"></div>
+        <button type="submit" id="login-btn" class="btn-primary">Sign In</button>
       </form>
     </div>
   </div>
 
-  <!-- ===== IDLE ===== -->
-  <div id="panel-idle" class="state-panel hidden">
-    <div class="center-content">
-      <div class="idle-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
+  <!-- ===== MAIN (call list) ===== -->
+  <div id="view-main" class="view">
+    <header class="app-header">
+      <h1 class="app-title">Sotto</h1>
+      <div class="header-actions">
+        <span id="ws-status" class="ws-dot" title="Connecting..."></span>
+        <button id="logout-btn" class="btn-ghost">Sign Out</button>
+      </div>
+    </header>
+
+    <!-- Live call banner -->
+    <div id="live-banner" class="live-banner hidden">
+      <div class="live-dot"></div>
+      <div class="live-text">
+        <span id="live-status">Processing call...</span>
+      </div>
+      <button id="live-view-btn" class="btn-pill">View</button>
+    </div>
+
+    <!-- Call list -->
+    <div id="call-list" class="call-list"></div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="empty-state hidden">
+      <div class="empty-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
         </svg>
       </div>
-      <p class="status-text">Waiting for call...</p>
-      <p class="status-hint">Calls will appear here automatically</p>
+      <p class="empty-title">No calls yet</p>
+      <p class="empty-subtitle">Calls will appear here as they come in</p>
     </div>
   </div>
 
-  <!-- ===== RINGING ===== -->
-  <div id="panel-ringing" class="state-panel hidden">
-    <div class="center-content">
-      <div id="ring-indicator" class="ring-circle pulsing"></div>
-      <p class="call-alert">Call Recorded</p>
-      <p id="ringing-number" class="call-number"></p>
-      <div id="epic-client-match" class="client-match hidden">
-        <span class="label">Client:</span>
-        <span id="epic-client-name"></span>
-      </div>
-    </div>
-  </div>
+  <!-- ===== DETAIL ===== -->
+  <div id="view-detail" class="view">
+    <header class="detail-header">
+      <button id="back-btn" class="btn-back">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12L6 8l4-4"/></svg>
+        Calls
+      </button>
+      <span id="detail-status" class="status-pill"></span>
+    </header>
 
-  <!-- ===== ACTIVE ===== -->
-  <div id="panel-active" class="state-panel hidden">
-    <div class="center-content">
-      <div class="active-dot"></div>
-      <p id="call-timer" class="call-timer">00:00</p>
-      <p class="status-hint">Processing recording...</p>
-    </div>
-  </div>
-
-  <!-- ===== ENDED (transcribing) ===== -->
-  <div id="panel-ended" class="state-panel hidden">
-    <div class="center-content">
-      <div class="spinner"></div>
-      <p id="ended-status" class="status-text">Transcribing...</p>
-      <p class="status-hint">This usually takes a minute</p>
-    </div>
-  </div>
-
-  <!-- ===== TRANSCRIPT READY + COMPLETE (shared detail panel) ===== -->
-  <div id="panel-detail" class="state-panel hidden">
-    <div class="call-detail">
-      <!-- Call info bar -->
-      <div class="call-info-bar">
-        <div class="info-item">
-          <span class="label">From</span>
-          <span id="detail-from" class="value">--</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Direction</span>
-          <span id="detail-direction" class="value">--</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Duration</span>
-          <span id="detail-duration" class="value">--</span>
+    <div class="detail-content">
+      <div class="detail-hero">
+        <h2 id="detail-number" class="detail-number">--</h2>
+        <div class="detail-meta">
+          <span id="detail-direction" class="meta-item">--</span>
+          <span class="meta-sep">&middot;</span>
+          <span id="detail-duration" class="meta-item">--</span>
+          <span class="meta-sep">&middot;</span>
+          <span id="detail-date" class="meta-item">--</span>
         </div>
       </div>
 
-      <!-- Summary (hidden until complete state) -->
-      <div id="summary-section" class="section hidden">
-        <h3 class="section-title">Summary</h3>
-        <p id="summary-text" class="summary-content"></p>
-      </div>
+      <!-- Summary -->
+      <section id="section-summary" class="detail-section hidden">
+        <h3 class="section-heading">Summary</h3>
+        <p id="detail-summary" class="section-body"></p>
+      </section>
 
-      <!-- Action items (hidden until complete state) -->
-      <div id="action-items-section" class="section hidden">
-        <h3 class="section-title">Action Items</h3>
-        <ul id="action-items-list" class="action-items-list"></ul>
-      </div>
+      <!-- Action Items -->
+      <section id="section-actions" class="detail-section hidden">
+        <h3 class="section-heading">Action Items</h3>
+        <ul id="detail-actions" class="action-list"></ul>
+      </section>
 
       <!-- Transcript -->
-      <div class="section">
-        <h3 class="section-title">Transcript</h3>
-        <div id="transcript-content" class="transcript-scroll"></div>
-      </div>
+      <section id="section-transcript" class="detail-section">
+        <div class="section-header-row">
+          <h3 class="section-heading">Transcript</h3>
+          <button id="transcript-toggle" class="btn-ghost btn-xs">Collapse</button>
+        </div>
+        <div id="detail-transcript" class="transcript-container"></div>
+      </section>
 
       <!-- Notes -->
-      <div class="section">
-        <h3 class="section-title">Notes</h3>
-        <textarea id="notes-textarea" class="notes-input" placeholder="Add your notes here..." rows="4"></textarea>
-        <button id="save-notes-btn" class="btn-primary">Save Notes</button>
-      </div>
-
-      <!-- Back to idle -->
-      <button id="dismiss-btn" class="btn-secondary full-width">Done</button>
+      <section class="detail-section">
+        <h3 class="section-heading">Notes</h3>
+        <textarea id="detail-notes" class="notes-field" placeholder="Add notes about this call..." rows="3"></textarea>
+        <button id="save-notes-btn" class="btn-primary btn-sm">Save Notes</button>
+      </section>
     </div>
   </div>
 
-  <!-- Scripts: Cognito SDK (loaded from vendor after npm install), then shared modules, then panel logic -->
   <script src="../vendor/amazon-cognito-identity.min.js"></script>
   <script src="../shared/auth.js"></script>
   <script src="../shared/api.js"></script>

@@ -3,7 +3,7 @@
 
 const Api = (() => {
   // Configure after deployment — sotto-{env}-HttpApiUrl SAM output
-  const BASE_URL = ""; // e.g. https://xxx.execute-api.ca-central-1.amazonaws.com/dev
+  const BASE_URL = "https://29p97oos96.execute-api.us-east-1.amazonaws.com/dev";
 
   async function getAuthHeader() {
     const { idToken } = await Auth.getTokens();
