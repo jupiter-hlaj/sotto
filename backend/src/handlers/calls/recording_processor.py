@@ -104,11 +104,20 @@ def _process_record(record: dict) -> None:
     # Resolve agent_id from NumberMappings
     agent_id = _resolve_agent(tenant_id, call_event.to_identifier)
 
-    # Create call record with status=recording
     now_iso = call_event.ended_at.isoformat()
     year = call_event.ended_at.strftime("%Y")
     month = call_event.ended_at.strftime("%m")
 
+    # Download recording first — if this fails, SQS retries with no orphaned DB record
+    recording_s3_key = _download_and_upload_recording(
+        tenant_id=tenant_id,
+        call_id=call_id,
+        call_event=call_event,
+        year=year,
+        month=month,
+    )
+
+    # Create call record only after recording is safely in S3
     call_item = {
         "tenant_id": tenant_id,
         "call_id": call_id,
@@ -119,7 +128,8 @@ def _process_record(record: dict) -> None:
         "from_number": call_event.from_number,
         "to_identifier": call_event.to_identifier,
         "duration_sec": call_event.duration_sec,
-        "status": "recording",
+        "recording_s3_key": recording_s3_key,
+        "status": "transcribing",
         "transcript_status": "pending",
         "created_at": now_iso,
         "ended_at": now_iso,
@@ -130,25 +140,6 @@ def _process_record(record: dict) -> None:
         extra={"table": "sotto-calls", "tenant_id": tenant_id, "call_id": call_id, "operation": "PutItem"},
     )
     db.create_call(call_item)
-
-    # Download recording from provider and stream to S3
-    recording_s3_key = _download_and_upload_recording(
-        tenant_id=tenant_id,
-        call_id=call_id,
-        call_event=call_event,
-        year=year,
-        month=month,
-    )
-
-    # Update call: set recording key, status=transcribing
-    logger.debug(
-        "Updating call status to transcribing",
-        extra={"table": "sotto-calls", "tenant_id": tenant_id, "call_id": call_id, "operation": "UpdateItem"},
-    )
-    db.update_call(tenant_id, call_id, {
-        "recording_s3_key": recording_s3_key,
-        "status": "transcribing",
-    })
 
     # Push call_recorded event to agent via WebSocket
     if agent_id and WEBSOCKET_API_ENDPOINT:
