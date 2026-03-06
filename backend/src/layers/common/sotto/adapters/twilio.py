@@ -30,6 +30,17 @@ class TwilioAdapter(BaseAdapter):
         # parse_qsl properly URL-decodes values, which Twilio requires for signature validation
         params = dict(parse_qsl(body)) if body else {}
 
+        logger.debug(
+            "Twilio signature validation attempt",
+            extra={
+                "tenant_id": self.tenant_id,
+                "url": url,
+                "param_keys": sorted(params.keys()),
+                "signature_length": len(signature),
+                "auth_token_length": len(auth_token),
+            },
+        )
+
         if not validator.validate(url, params, signature):
             logger.warning(
                 "Invalid Twilio signature",
