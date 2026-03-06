@@ -1077,6 +1077,22 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
 
+  RecordingsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref RecordingsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowTranscribeOutput
+            Effect: Allow
+            Principal:
+              Service: transcribe.amazonaws.com
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${RecordingsBucket}/*"
+
   # SAM deployment artifacts and Lambda zip files
   # NOTE: This bucket must exist before first `sam deploy`.
   # Bootstrap: create manually, then this resource adopts it on stack creation.
