@@ -155,4 +155,4 @@ def _parse_body(event: dict) -> dict | None:
 
 
 def _response(status_code: int, body: dict) -> dict:
-    return {"statusCode": status_code, "body": json.dumps(body)}
+    return {"statusCode": status_code, "body": json.dumps(body, default=str)}

@@ -221,4 +221,4 @@ def _handle_webhook(event: dict, start_time: float) -> dict:
 
 
 def _response(status_code: int, body: dict) -> dict:
-    return {"statusCode": status_code, "body": json.dumps(body)}
+    return {"statusCode": status_code, "body": json.dumps(body, default=str)}
