@@ -17,7 +17,7 @@ class TwilioAdapter(BaseAdapter):
         credentials = self.secrets.get_provider_credentials(self.tenant_id, "twilio")
         auth_token = credentials.get("token") or credentials.get("auth_token", "")
 
-        signature = headers.get("X-Twilio-Signature", "")
+        signature = headers.get("x-twilio-signature") or headers.get("X-Twilio-Signature", "")
         if not signature:
             logger.warning(
                 "Missing X-Twilio-Signature header",
