@@ -1,6 +1,7 @@
 """Twilio adapter — fully implemented (Section 7.3)."""
 
 from datetime import datetime, timezone
+from urllib.parse import parse_qsl
 
 from twilio.request_validator import RequestValidator
 
@@ -26,8 +27,8 @@ class TwilioAdapter(BaseAdapter):
             raise ValueError("Missing X-Twilio-Signature header")
 
         validator = RequestValidator(auth_token)
-        # Parse body as form params for Twilio validation
-        params = dict(pair.split("=", 1) for pair in body.split("&") if "=" in pair) if body else {}
+        # parse_qsl properly URL-decodes values, which Twilio requires for signature validation
+        params = dict(parse_qsl(body)) if body else {}
 
         if not validator.validate(url, params, signature):
             logger.warning(
