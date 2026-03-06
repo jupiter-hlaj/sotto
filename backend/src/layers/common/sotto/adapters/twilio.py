@@ -27,8 +27,8 @@ class TwilioAdapter(BaseAdapter):
             raise ValueError("Missing X-Twilio-Signature header")
 
         validator = RequestValidator(auth_token)
-        # parse_qsl properly URL-decodes values, which Twilio requires for signature validation
-        params = dict(parse_qsl(body)) if body else {}
+        # keep_blank_values=True is required — Twilio includes empty params in signature computation
+        params = dict(parse_qsl(body, keep_blank_values=True)) if body else {}
 
         logger.debug(
             "Twilio signature validation attempt",
