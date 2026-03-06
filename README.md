@@ -11,9 +11,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.13-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.13">
-  <img src="https://img.shields.io/badge/AWS_SAM-Serverless-FF9900?style=flat-square&logo=amazonaws&logoColor=white" alt="AWS SAM">
-  <img src="https://img.shields.io/badge/Graviton2-arm64-232F3E?style=flat-square&logo=amazonaws" alt="arm64">
-  <img src="https://img.shields.io/badge/Chrome-Extension_MV3-4285F4?style=flat-square&logo=googlechrome&logoColor=white" alt="Chrome MV3">
+  <img src="https://img.shields.io/badge/AWS_SAM-Serverless-FF9900?style=flat-square&logo=amazonwebservices&logoColor=white" alt="AWS SAM">
+  <img src="https://img.shields.io/badge/Graviton2-arm64-232F3E?style=flat-square&logo=amazonwebservices&logoColor=white" alt="arm64">
+  <img src="https://img.shields.io/badge/Chrome-Extension_MV3-4285F4?style=flat-square&logo=google-chrome&logoColor=white" alt="Chrome MV3">
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 18">
 </p>
 
