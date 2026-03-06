@@ -92,8 +92,8 @@ def _handle(event: dict, start_time: float) -> dict:
     if transcript_key:
         logger.debug("Fetching transcript from S3", extra={"tenant_id": tenant_id, "call_id": call_id, "s3_key": transcript_key})
         try:
-            transcript = s3.read_transcript_by_key(transcript_key)
-            result["transcript"] = transcript
+            raw = s3.read_transcript_by_key(transcript_key)
+            result["transcript"] = _parse_transcript(raw)
         except Exception:
             logger.exception("Failed to read transcript from S3", extra={"tenant_id": tenant_id, "call_id": call_id, "s3_key": transcript_key})
             result["transcript"] = None
@@ -140,6 +140,24 @@ def _handle_recording_url(event: dict, start_time: float) -> dict:
     duration_ms = int((time.time() - start_time) * 1000)
     logger.debug("Handler completed", extra={"duration_ms": duration_ms, "result_status": "ok"})
     return _response(200, {"url": url, "expires_in": 900})
+
+
+def _parse_transcript(raw: dict) -> dict:
+    """Convert raw AWS Transcribe JSON into {segments: [{speaker, text}]}."""
+    segments = []
+    for seg in raw.get("results", {}).get("audio_segments", []):
+        label = seg.get("speaker_label", "spk_0")
+        try:
+            speaker_num = int(label.replace("spk_", "")) + 1
+        except ValueError:
+            speaker_num = 1
+        segments.append({
+            "speaker": f"Speaker {speaker_num}",
+            "text": seg.get("transcript", ""),
+            "start_time": seg.get("start_time"),
+            "end_time": seg.get("end_time"),
+        })
+    return {"segments": segments}
 
 
 def _build_call_response(call: dict) -> dict:

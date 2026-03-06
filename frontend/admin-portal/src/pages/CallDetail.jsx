@@ -82,7 +82,18 @@ export default function CallDetail() {
 
       {/* Recording Player */}
       <section className="bg-white shadow rounded-lg p-4 mb-6">
-        <h2 className="text-lg font-semibold mb-3">Recording</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Recording</h2>
+          {audioUrl && (
+            <a
+              href={audioUrl}
+              download={`call-${callId}.mp3`}
+              className="text-sm text-indigo-600 hover:underline"
+            >
+              Download MP3
+            </a>
+          )}
+        </div>
         {audioUrl ? (
           <audio controls className="w-full" src={audioUrl}>
             Your browser does not support the audio element.
