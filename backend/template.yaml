@@ -188,7 +188,7 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref CallsTable
-        - S3ReadPolicy:
+        - S3CrudPolicy:
             BucketName: !Ref RecordingsBucket
         - Statement:
             - Effect: Allow
