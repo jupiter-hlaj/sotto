@@ -217,8 +217,16 @@ def _handle_webhook(event: dict, start_time: float) -> dict:
 
     duration_ms = int((time.time() - start_time) * 1000)
     logger.debug("Handler completed", extra={"duration_ms": duration_ms, "result_status": "ok"})
-    return _response(200, {"status": "accepted"})
+    return _twiml_response(200, "<Response/>")
 
 
 def _response(status_code: int, body: dict) -> dict:
     return {"statusCode": status_code, "body": json.dumps(body, default=str)}
+
+
+def _twiml_response(status_code: int, twiml: str) -> dict:
+    return {
+        "statusCode": status_code,
+        "headers": {"Content-Type": "application/xml"},
+        "body": twiml,
+    }
