@@ -50,7 +50,10 @@ parameter_overrides   = [
   "Environment=dev",
   "LogLevel=DEBUG",
   "CognitoAdminEmail=jupiter.hlaj@gmail.com",
-  "SnsAlertEmail=jupiter.hlaj@gmail.com"
+  "SnsAlertEmail=jupiter.hlaj@gmail.com",
+  "WildcardCertArn=arn:aws:acm:us-east-1:821891894512:certificate/16659c98-f201-4826-8761-c298c73069b2",
+  "ApiDomain=api-dev.sotto.cloud",
+  "PortalDomain=portal-dev.sotto.cloud"
 ]
 
 # =========================================================
@@ -76,5 +79,8 @@ parameter_overrides   = [
   "Environment=prod",
   "LogLevel=INFO",
   "CognitoAdminEmail=jupiter.hlaj@gmail.com",
-  "SnsAlertEmail=jupiter.hlaj@gmail.com"
+  "SnsAlertEmail=jupiter.hlaj@gmail.com",
+  "WildcardCertArn=arn:aws:acm:us-east-1:821891894512:certificate/16659c98-f201-4826-8761-c298c73069b2",
+  "ApiDomain=api.sotto.cloud",
+  "PortalDomain=portal.sotto.cloud"
 ]

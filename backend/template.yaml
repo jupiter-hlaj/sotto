@@ -21,11 +21,43 @@ Parameters:
     Type: String
     Description: Email address for CloudWatch alarm notifications
 
+  # Teams Phone integration — T-5 infra parameters.
+  # Declared now so the Parameters block does not churn again when T-5 lands.
+  # Safe to leave empty until the Teams bot ECS service is deployed.
+  VpcId:
+    Type: String
+    Default: ""
+    Description: "Teams bot ECS VPC id (manually bootstrapped). Leave empty until T-5."
+  PublicSubnets:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: "Teams bot ECS public subnets (two AZs). Leave empty until T-5."
+  BotTLSCertificateArn:
+    Type: String
+    Default: ""
+    Description: "ACM certificate ARN for bots.sotto.cloud. Leave empty until T-5."
+
+  # Custom domain wiring (M1.5). Leave empty to skip custom domain setup
+  # and fall back to the default *.execute-api / *.cloudfront.net URLs.
+  WildcardCertArn:
+    Type: String
+    Default: ""
+    Description: "ACM certificate ARN (us-east-1) covering *.sotto.cloud — used by API Gateway and CloudFront."
+  ApiDomain:
+    Type: String
+    Default: ""
+    Description: "Custom domain for the HTTP API, e.g. api-dev.sotto.cloud or api.sotto.cloud."
+  PortalDomain:
+    Type: String
+    Default: ""
+    Description: "Custom domain for the admin portal CloudFront, e.g. portal-dev.sotto.cloud or portal.sotto.cloud."
+
 # =========================================================
 # Conditions
 # =========================================================
 Conditions:
   IsProd: !Equals [!Ref Environment, prod]
+  HasCustomDomains: !Not [!Equals [!Ref WildcardCertArn, ""]]
 
 # =========================================================
 # Globals (Lambda + API defaults)
@@ -92,6 +124,29 @@ Resources:
               issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
               audience:
                 - !Ref UserPoolClient
+
+  # Custom domain for the HTTP API (M1.5). Raw ApiGatewayV2 resources — not the
+  # SAM `Domain` shortcut — so the whole block can be toggled by a Condition.
+  ApiCustomDomain:
+    Type: AWS::ApiGatewayV2::DomainName
+    Condition: HasCustomDomains
+    Properties:
+      DomainName: !Ref ApiDomain
+      DomainNameConfigurations:
+        - CertificateArn: !Ref WildcardCertArn
+          EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+      Tags:
+        Project: sotto
+        Environment: !Ref Environment
+
+  ApiCustomDomainMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Condition: HasCustomDomains
+    Properties:
+      ApiId: !Ref SottoHttpApi
+      DomainName: !Ref ApiCustomDomain
+      Stage: !Ref Environment
 
   # =========================================================
   # Lambda Functions
@@ -768,6 +823,10 @@ Resources:
   # =========================================================
 
   # 5.1 Tenants — one record per agency
+  # Non-key Teams attributes (no schema declaration needed — DynamoDB is
+  # schemaless for non-key attrs): teams_enabled (Bool), teams_policy_id (S),
+  # teams_connected_at (S, ISO-8601). Written by TeamsOnboarding handler on
+  # successful admin consent (spec §4.4 + §8.2).
   TenantsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -782,6 +841,8 @@ Resources:
           AttributeType: S
         - AttributeName: created_at
           AttributeType: S
+        - AttributeName: ms_tenant_id
+          AttributeType: S
       KeySchema:
         - AttributeName: tenant_id
           KeyType: HASH
@@ -794,6 +855,19 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
+        # ms-tenant-index: resolve a Microsoft tenant id (received in bot
+        # notification JWTs) to a Sotto tenant_id without a full table scan.
+        # Spec §8.2.
+        - IndexName: ms-tenant-index
+          KeySchema:
+            - AttributeName: ms_tenant_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - tenant_id
+              - teams_enabled
+              - teams_policy_id
       Tags:
         - Key: Project
           Value: sotto
@@ -801,6 +875,9 @@ Resources:
           Value: !Ref Environment
 
   # 5.2 Agents — one record per agent per tenant
+  # Non-key Teams attribute (no schema declaration needed): teams_policy_assigned
+  # (Bool). Set to true once the recording policy is assigned to the agent's
+  # Microsoft user (spec §4.3 + §8.2).
   AgentsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -816,6 +893,8 @@ Resources:
         - AttributeName: email
           AttributeType: S
         - AttributeName: cognito_sub
+          AttributeType: S
+        - AttributeName: ms_user_id
           AttributeType: S
       KeySchema:
         - AttributeName: tenant_id
@@ -837,6 +916,19 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
+        # ms-user-index: the TeamsMediaBot resolves a Microsoft user id on every
+        # incoming call to a Sotto agent_id. Spec §5.8 + §8.2.
+        - IndexName: ms-user-index
+          KeySchema:
+            - AttributeName: ms_user_id
+              KeyType: HASH
+            - AttributeName: tenant_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - agent_id
+              - agent_status
       Tags:
         - Key: Project
           Value: sotto
@@ -869,6 +961,20 @@ Resources:
 
   # 5.4 Calls — one record per call
   # agent_date_key stores the composite value "{tenant_id}#{agent_id}"
+  #
+  # Non-key Teams attributes (no schema declaration needed — DynamoDB is
+  # schemaless for non-key attrs), only populated for provider == "teams":
+  #   ms_call_id         (S)  — Microsoft native call id
+  #   bot_task_id        (S)  — ECS task id that handled the call
+  #   recording_status   (S)  — in_progress | upload_complete | partial_upload | failed
+  #   partial_recording  (Bool) — true if bot shut down mid-call
+  #   partial_reason     (S)  — graceful_shutdown | network_loss | null
+  #   agent_channel      (N)  — stereo channel with agent audio (always 0 for Teams)
+  # Spec §5.6.5, §8.2, §9.
+  #
+  # The TeamsOrphanDetector (spec §5.6.7) finds stuck calls via a scan with
+  # filter on (status=recording, recording_status=in_progress, started_at<cutoff).
+  # No new GSI is required — orphans are rare and the scan runs every 15 minutes.
   CallsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -1255,6 +1361,16 @@ Resources:
         DefaultRootObject: index.html
         HttpVersion: http2
         PriceClass: PriceClass_100
+        Aliases: !If
+          - HasCustomDomains
+          - [!Ref PortalDomain]
+          - !Ref AWS::NoValue
+        ViewerCertificate: !If
+          - HasCustomDomains
+          - AcmCertificateArn: !Ref WildcardCertArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
         Origins:
           - Id: PortalS3Origin
             DomainName: !GetAtt PortalBucket.RegionalDomainName
@@ -1523,6 +1639,22 @@ Outputs:
     Value: !GetAtt PortalDistribution.DomainName
     Export:
       Name: !Sub sotto-${Environment}-PortalDistributionDomain
+
+  # Custom domain CNAME targets (M1.5). Only emitted when HasCustomDomains is true.
+  # These are the values the user must enter at Porkbun as CNAME "Answer" fields.
+  ApiCustomDomainTarget:
+    Condition: HasCustomDomains
+    Description: "CNAME target for ApiDomain (e.g. api-dev.sotto.cloud) — add at Porkbun."
+    Value: !GetAtt ApiCustomDomain.RegionalDomainName
+    Export:
+      Name: !Sub sotto-${Environment}-ApiCustomDomainTarget
+
+  PortalCustomDomainTarget:
+    Condition: HasCustomDomains
+    Description: "CNAME target for PortalDomain (e.g. portal-dev.sotto.cloud) — add at Porkbun."
+    Value: !GetAtt PortalDistribution.DomainName
+    Export:
+      Name: !Sub sotto-${Environment}-PortalCustomDomainTarget
 
   # Admin API
   AdminSignupFunctionArn:

@@ -38,6 +38,10 @@ jobs:
         run: sam build --no-cached --template backend/template.yaml
 
       - name: SAM Deploy (prod — canary strategy)
+        # NOTE: Parameters are passed inline here — we do NOT read samconfig.toml
+        # in CI. If you add a new SAM Parameter that needs a non-empty value,
+        # add it both here and in samconfig.toml (for local dev). See
+        # sotto-custom-domains.md for the custom-domain-related parameters.
         run: |
           sam deploy \
             --stack-name sotto-prod \
@@ -48,6 +52,9 @@ jobs:
               LogLevel=INFO \
               CognitoAdminEmail=jupiter.hlaj@gmail.com \
               SnsAlertEmail=jupiter.hlaj@gmail.com \
+              WildcardCertArn=arn:aws:acm:us-east-1:821891894512:certificate/16659c98-f201-4826-8761-c298c73069b2 \
+              ApiDomain=api.sotto.cloud \
+              PortalDomain=portal.sotto.cloud \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
             --region ${{ secrets.AWS_REGION }}
