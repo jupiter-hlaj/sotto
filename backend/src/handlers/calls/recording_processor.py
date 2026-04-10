@@ -89,7 +89,14 @@ def _process_record(record: dict) -> None:
     body = record.get("body", "")
     call_event = NormalizedCallEvent.model_validate_json(body)
     tenant_id = call_event.tenant_id
-    call_id = str(uuid.uuid4())
+
+    # call_id:
+    #   Teams  → bot pre-generated at call-answer time (spec §5.6.5) and
+    #            also used to create the DynamoDB call record before any
+    #            audio was captured. We MUST reuse it so the update below
+    #            targets the same row.
+    #   Others → bot never ran; generate a fresh uuid4 as before.
+    call_id = call_event.call_id or str(uuid.uuid4())
 
     logger.debug(
         "Processing call event",
@@ -98,50 +105,130 @@ def _process_record(record: dict) -> None:
             "provider": call_event.provider,
             "provider_call_id": call_event.provider_call_id,
             "call_id": call_id,
+            "recording_already_uploaded": call_event.recording_already_uploaded,
+            "partial": call_event.partial,
         },
     )
 
-    # Resolve agent_id from NumberMappings
-    agent_id = _resolve_agent(tenant_id, call_event.to_identifier)
+    # Partial-recording warning: downstream still runs, but ops should
+    # know the transcript and summary will be incomplete. Spec §5.6.7.
+    if call_event.partial:
+        logger.warning(
+            "Recording is partial — transcript will be incomplete but pipeline continues",
+            extra={
+                "tenant_id": tenant_id,
+                "call_id": call_id,
+                "partial_reason": call_event.partial_reason,
+            },
+        )
+
+    # Agent resolution:
+    #   Teams  → bot already resolved via ms-user-index GSI on agents
+    #            table (spec §5.8). Phone-number-based lookup is
+    #            meaningless for Teams — the "to_identifier" is not a
+    #            PSTN number.
+    #   Others → look up via NumberMappings as before.
+    if call_event.agent_id:
+        agent_id = call_event.agent_id
+        logger.debug(
+            "Agent pre-resolved by provider",
+            extra={
+                "tenant_id": tenant_id,
+                "call_id": call_id,
+                "agent_id": agent_id,
+                "provider": call_event.provider,
+            },
+        )
+    else:
+        agent_id = _resolve_agent(tenant_id, call_event.to_identifier)
 
     now_iso = call_event.ended_at.isoformat()
     year = call_event.ended_at.strftime("%Y")
     month = call_event.ended_at.strftime("%m")
 
-    # Download recording first — if this fails, SQS retries with no orphaned DB record
-    recording_s3_key = _download_and_upload_recording(
-        tenant_id=tenant_id,
-        call_id=call_id,
-        call_event=call_event,
-        year=year,
-        month=month,
-    )
+    # Recording path (spec §9 Change 1):
+    #   Teams  → bot has already streamed the stereo MP3 to S3; the
+    #            event carries the final key. Skip download entirely.
+    #   Others → stream from provider URL to S3 now. If the download
+    #            or upload fails, SQS retries with no orphaned DB row
+    #            (the create_call below has not run yet).
+    if call_event.recording_already_uploaded:
+        recording_s3_key = call_event.recording_s3_key
+        logger.info(
+            "Recording pre-uploaded by bot, skipping download",
+            extra={
+                "tenant_id": tenant_id,
+                "call_id": call_id,
+                "provider": call_event.provider,
+                "recording_s3_key": recording_s3_key,
+            },
+        )
+    else:
+        recording_s3_key = _download_and_upload_recording(
+            tenant_id=tenant_id,
+            call_id=call_id,
+            call_event=call_event,
+            year=year,
+            month=month,
+        )
 
-    # Create call record only after recording is safely in S3
-    call_item = {
-        "tenant_id": tenant_id,
-        "call_id": call_id,
-        "agent_id": agent_id,
-        "provider": call_event.provider,
-        "provider_call_id": call_event.provider_call_id,
-        "direction": call_event.direction,
-        "from_number": call_event.from_number,
-        "to_identifier": call_event.to_identifier,
-        "duration_sec": call_event.duration_sec,
-        "recording_s3_key": recording_s3_key,
-        "status": "transcribing",
-        "transcript_status": "pending",
-        "created_at": now_iso,
-        "ended_at": now_iso,
-    }
+    # DynamoDB call record (spec §9 Change 2):
+    #   Teams  → bot already PutItem'd on call-answer. We must UPDATE,
+    #            not CREATE, or we'd overwrite bot_task_id, started_at,
+    #            and other bot-set fields.
+    #   Others → no existing row; CREATE as before.
+    if call_event.recording_already_uploaded:
+        updates = {
+            "status": "transcribing",
+            "recording_s3_key": recording_s3_key,
+            "recording_status": "upload_complete",
+            "ended_at": now_iso,
+            "duration_sec": call_event.duration_sec,
+            "partial_recording": call_event.partial,
+            "partial_reason": call_event.partial_reason,
+            "agent_channel": call_event.agent_channel,
+        }
+        if call_event.ms_call_id:
+            updates["ms_call_id"] = call_event.ms_call_id
+        logger.debug(
+            "Updating existing call record (Teams pre-uploaded)",
+            extra={
+                "table": "sotto-calls",
+                "tenant_id": tenant_id,
+                "call_id": call_id,
+                "operation": "UpdateItem",
+            },
+        )
+        db.update_call(tenant_id, call_id, updates)
+    else:
+        call_item = {
+            "tenant_id": tenant_id,
+            "call_id": call_id,
+            "agent_id": agent_id,
+            "provider": call_event.provider,
+            "provider_call_id": call_event.provider_call_id,
+            "direction": call_event.direction,
+            "from_number": call_event.from_number,
+            "to_identifier": call_event.to_identifier,
+            "duration_sec": call_event.duration_sec,
+            "recording_s3_key": recording_s3_key,
+            "status": "transcribing",
+            "transcript_status": "pending",
+            "created_at": now_iso,
+            "ended_at": now_iso,
+        }
+        logger.debug(
+            "Creating call record",
+            extra={
+                "table": "sotto-calls",
+                "tenant_id": tenant_id,
+                "call_id": call_id,
+                "operation": "PutItem",
+            },
+        )
+        db.create_call(call_item)
 
-    logger.debug(
-        "Creating call record",
-        extra={"table": "sotto-calls", "tenant_id": tenant_id, "call_id": call_id, "operation": "PutItem"},
-    )
-    db.create_call(call_item)
-
-    # Push call_recorded event to agent via WebSocket
+    # Push call_recorded event to agent via WebSocket (unchanged for both branches)
     if agent_id and WEBSOCKET_API_ENDPOINT:
         ws_publisher.push_to_agent(
             agent_id=agent_id,
@@ -150,7 +237,7 @@ def _process_record(record: dict) -> None:
             apigw_client=_get_apigw_client(),
         )
 
-    # Invoke TranscriptionInit
+    # Invoke TranscriptionInit (unchanged for both branches)
     _invoke_transcription_init(tenant_id, call_id, recording_s3_key, year, month)
 
 
