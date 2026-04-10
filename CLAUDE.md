@@ -115,3 +115,26 @@ Env vars: ENVIRONMENT · LOG_LEVEL · POWERTOOLS_SERVICE_NAME=sotto · POWERTOOL
 - `frontend/admin-portal/src/pages/CallHistory.jsx`
 - `frontend/admin-portal/src/pages/CallDetail.jsx`
 - `frontend/admin-portal/src/pages/Settings.jsx`
+
+## Teams Phone Integration (post-Step 12)
+
+Tracking Microsoft Teams Phone integration per `sotto-teams-phone-integration.md`.
+Custom-domain runbook: `sotto-custom-domains.md`. Structured as milestones with
+hard stops between them.
+
+- [x] **M1 / T-2** — Teams DynamoDB schema (tenants/agents/calls) + T-5 placeholder parameters in `template.yaml`
+- [x] **M1.5** — `sotto.cloud` custom domains end-to-end: ACM wildcard cert, API Gateway custom domain, CloudFront alias, Porkbun CNAMEs, CI wiring, runbook. Live at `api-dev.sotto.cloud` + `portal-dev.sotto.cloud`.
+- [ ] **M2 / T-3** — TeamsOnboarding Lambda (`src/handlers/teams/onboarding.py`) + Graph API client (`src/handlers/teams/graph_client.py`) + SAM function resource + unit tests. **In progress.**
+- [ ] **M3 / T-7** — Pipeline plumbing: `NormalizedCallEvent` Teams fields, `RecordingProcessor` skip-download branch, `TranscriptionInit` channel identification cascade, unit tests.
+- [ ] **Deferred to separate sessions:**
+  - **T-4** — C# `.NET 8` TeamsMediaBot container (receives SRTP, buffers audio, encodes stereo MP3, uploads to S3, publishes SQS handoff). Microsoft Graph Communications SDK is C#-only.
+  - **T-5** — ECS Fargate cluster + ALB + Secrets Manager bootstrap for the bot (VpcId/PublicSubnets/BotTLSCertificateArn parameters already declared in `template.yaml`, default empty).
+  - T-4 and T-5 are deferred because they are self-contained sub-projects with their own tool/language context (C#, ECR, Fargate networking). Handling them in separate sessions keeps this session focused.
+
+**Key architectural decisions locked in:**
+- Azure AD app is **multi-tenant**, one registration owned by Sotto. Customers consent via OAuth; no per-customer app registration.
+- Token flow: `client_credentials` grant, application permissions. No delegated auth, no refresh tokens, no per-tenant token storage.
+- Azure app secrets: GLOBAL `sotto/azure/app_client_id` + `sotto/azure/app_client_secret` in Secrets Manager. Per-tenant `ms_tenant_id` lives on the DynamoDB tenant record.
+- Compliance recording policy: `requiredDuringCall=false`, `requiredBeforeCallEstablishment=false` — missed recordings are acceptable, dropping live customer calls is not.
+- Policy assignment is per-agent (not tenant-wide) so admins/back-office staff aren't recorded.
+- OAuth callback URL: `https://api-dev.sotto.cloud/teams/oauth/callback` (dev) and `https://api.sotto.cloud/teams/oauth/callback` (prod).

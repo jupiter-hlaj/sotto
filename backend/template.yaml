@@ -804,6 +804,56 @@ Resources:
       Principal: cognito-idp.amazonaws.com
       SourceArn: !GetAtt UserPool.Arn
 
+  # =========================================================
+  # Teams Phone Integration (spec sotto-teams-phone-integration.md)
+  # =========================================================
+
+  # T-3 TeamsOnboarding — GET /teams/oauth/callback
+  # Public OAuth callback Microsoft redirects to after the admin accepts the
+  # consent prompt. Validates CSRF state, creates the ComplianceRecordingPolicy
+  # via Graph API, assigns it to every agent with ms_user_id set, and redirects
+  # the admin back to the portal settings page with a success query string.
+  TeamsOnboardingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub sotto-teams-onboarding-${Environment}
+      Handler: handlers.teams.onboarding.handler
+      CodeUri: src/
+      Timeout: 30
+      MemorySize: 256
+      AutoPublishAlias: live
+      Environment:
+        Variables:
+          # Portal base URL for the success/error redirect. Uses the custom
+          # domain when available, else falls back to the CloudFront default
+          # domain so the stack still builds in bare-bones mode.
+          PORTAL_BASE_URL: !If
+            - HasCustomDomains
+            - !Sub https://${PortalDomain}
+            - !Sub https://${PortalDistribution.DomainName}
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TenantsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AgentsTable
+        # Read ONLY the global Azure app credentials, not all sotto/* secrets.
+        # Per-tenant provider credentials are not needed by this handler.
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource:
+                - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:sotto/azure/app_client_id-*
+                - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:sotto/azure/app_client_secret-*
+      Events:
+        OAuthCallback:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SottoHttpApi
+            Path: /teams/oauth/callback
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
   CommonLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
