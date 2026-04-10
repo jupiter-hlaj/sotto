@@ -138,8 +138,8 @@ Kept here as the source of truth so you don't have to log into Porkbun to see wh
 | Host | Type | Target | Purpose |
 |---|---|---|---|
 | `_bb0102c52baac36da7f6181ec198d1bf` | CNAME | `_6b39beb984d49c32b761ea8f951eeda8.jkddzztszm.acm-validations.aws.` | ACM cert validation (DO NOT DELETE) |
-| `api-dev` | CNAME | *(TBD — populate from `ApiCustomDomainTarget` after first dev deploy)* | HTTP API (dev) |
-| `portal-dev` | CNAME | *(TBD — populate from `PortalCustomDomainTarget` after first dev deploy)* | Admin portal (dev) |
+| `api-dev` | CNAME | `d-pbxdid42r2.execute-api.us-east-1.amazonaws.com` | HTTP API (dev) |
+| `portal-dev` | CNAME | `d3bdzxip02fvek.cloudfront.net` | Admin portal (dev) |
 | `api` | CNAME | *(TBD — populate after first prod deploy)* | HTTP API (prod) |
 | `portal` | CNAME | *(TBD — populate after first prod deploy)* | Admin portal (prod) |
 | `bots-dev` | *(TBD — added in T-4/T-5, Teams bot)* | — | Teams bot ingress (dev) |
