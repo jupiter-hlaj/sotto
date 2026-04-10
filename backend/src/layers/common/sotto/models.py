@@ -117,3 +117,44 @@ class NormalizedCallEvent(BaseModel):
     recording_format: str  # mp3 | wav | ogg
     ended_at: datetime
     raw_payload: dict
+
+    # ── Teams-specific fields (spec §10) ──────────────────────
+    # All default to the "non-Teams" values so existing adapters
+    # (twilio, ringcentral, zoom, 8x8) do not need to change.
+
+    recording_already_uploaded: bool = False
+    # True when the TeamsMediaBot already uploaded the stereo MP3 to S3
+    # and populated recording_s3_key directly. RecordingProcessor uses
+    # this flag to SKIP its normal provider-URL download step (spec §9
+    # Change 1) and to UPDATE the existing call record rather than
+    # CREATE a new one (spec §9 Change 2 — the bot already created the
+    # record the moment it answered the call, per §5.6.5). Always False
+    # for non-Teams providers — they go through the standard
+    # download-from-provider-URL path.
+
+    recording_s3_key: Optional[str] = None
+    # Populated by TeamsMediaBot when recording_already_uploaded=True.
+    # Format: {tenant_id}/recordings/{year}/{month}/{call_id}.mp3
+    # Non-Teams providers leave this None; RecordingProcessor computes
+    # the key itself after downloading from the provider URL.
+
+    agent_channel: int = 0
+    # For stereo Teams recordings: which MP3 channel contains the agent
+    # audio. Always 0 for Teams — the bot routes agent audio to channel 0
+    # at capture time (spec §5.6.8). Used by TranscriptionResultProcessor
+    # to deterministically map ch_0/ch_1 → "agent"/"client" in the
+    # transcript. Ignored by all non-Teams providers because their
+    # recordings are mono.
+
+    partial: bool = False
+    # True if the Teams bot terminated the recording early (SIGTERM
+    # graceful shutdown, network loss, bot crash, etc.) — spec §5.6.7.
+    # The downstream pipeline still runs on a partial recording: a
+    # partial transcript is better than nothing, and the agent can add
+    # manual notes for what was missed. RecordingProcessor logs a warning
+    # and marks the call record with partial_recording=True.
+
+    partial_reason: Optional[str] = None
+    # Why the recording was cut short. One of: None (complete) |
+    # "graceful_shutdown" | "network_loss". Stored on the call record
+    # for debugging and visible in the admin portal call-detail view.
