@@ -63,6 +63,24 @@ def handler(event: dict, context: LambdaContext) -> dict:
         raise
 
 
+def get_transcription_settings(provider: str) -> dict:
+    """Return provider-appropriate AWS Transcribe Settings block (spec §5.6.8).
+
+    Teams recordings are stereo MP3 (ch_0=agent, ch_1=client, routed at
+    capture time by the bot), so we use ChannelIdentification for
+    deterministic, 100%-reliable speaker attribution — no ML guessing.
+
+    All other providers deliver mono recordings; we fall back to
+    ShowSpeakerLabels ML diarization with two speakers.
+
+    ShowSpeakerLabels and ChannelIdentification are mutually exclusive
+    in AWS Transcribe — one or the other, never both.
+    """
+    if provider == "teams":
+        return {"ChannelIdentification": True}
+    return {"ShowSpeakerLabels": True, "MaxSpeakerLabels": 2}
+
+
 @tracer.capture_method
 def _start_transcription(event: dict) -> dict:
     tenant_id = event["tenant_id"]
@@ -70,10 +88,15 @@ def _start_transcription(event: dict) -> dict:
     recording_s3_key = event["recording_s3_key"]
     year = event["year"]
     month = event["month"]
+    # provider is optional for backward compat — non-Teams providers added it
+    # in the RecordingProcessor payload alongside the T-7 work. If missing,
+    # default to the non-Teams diarization path.
+    provider = event.get("provider", "")
 
     job_name = f"sotto-{_env}-{call_id}"
     media_uri = f"s3://{RECORDINGS_BUCKET}/{recording_s3_key}"
     output_key = f"{tenant_id}/transcripts/{year}/{month}/{call_id}.json"
+    settings = get_transcription_settings(provider)
 
     logger.debug(
         "Starting transcription job BEFORE",
@@ -81,9 +104,11 @@ def _start_transcription(event: dict) -> dict:
             "job_name": job_name,
             "tenant_id": tenant_id,
             "call_id": call_id,
+            "provider": provider,
             "media_uri": media_uri,
             "output_bucket": RECORDINGS_BUCKET,
             "output_key": output_key,
+            "settings": settings,
         },
     )
     transcribe_start = time.time()
@@ -94,10 +119,7 @@ def _start_transcription(event: dict) -> dict:
         LanguageCode="en-US",
         OutputBucketName=RECORDINGS_BUCKET,
         OutputKey=output_key,
-        Settings={
-            "ShowSpeakerLabels": True,
-            "MaxSpeakerLabels": 2,
-        },
+        Settings=settings,
     )
 
     transcribe_duration_ms = int((time.time() - transcribe_start) * 1000)

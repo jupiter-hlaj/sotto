@@ -238,7 +238,9 @@ def _process_record(record: dict) -> None:
         )
 
     # Invoke TranscriptionInit (unchanged for both branches)
-    _invoke_transcription_init(tenant_id, call_id, recording_s3_key, year, month)
+    _invoke_transcription_init(
+        tenant_id, call_id, recording_s3_key, year, month, call_event.provider
+    )
 
 
 @tracer.capture_method
@@ -405,13 +407,18 @@ def _invoke_transcription_init(
     recording_s3_key: str,
     year: str,
     month: str,
+    provider: str,
 ) -> None:
+    # provider is passed through so TranscriptionInit can pick the right
+    # AWS Transcribe Settings block — ChannelIdentification for Teams
+    # stereo recordings, ShowSpeakerLabels for everyone else (spec §5.6.8).
     payload = {
         "tenant_id": tenant_id,
         "call_id": call_id,
         "recording_s3_key": recording_s3_key,
         "year": year,
         "month": month,
+        "provider": provider,
     }
 
     logger.debug(

@@ -40,6 +40,23 @@ def _get_apigw_client():
     return _apigw_client
 
 
+def resolve_speaker_label(label: str, provider: str, agent_channel: int = 0) -> str:
+    """Map a raw AWS Transcribe speaker/channel label to 'agent' | 'client' (spec §5.6.8).
+
+    Teams (stereo + ChannelIdentification): labels are 'ch_0' / 'ch_1'.
+    The bot routes agent audio to agent_channel (always 0) at capture
+    time, so the mapping is deterministic — no ML guessing.
+
+    All other providers (mono + ShowSpeakerLabels diarization): labels
+    are 'spk_0' / 'spk_1'. 'spk_0' is typically the first speaker to
+    talk; we treat it as the agent. This is a heuristic, not a
+    guarantee — the existing behavior pre-Teams.
+    """
+    if provider == "teams":
+        return "agent" if label == f"ch_{agent_channel}" else "client"
+    return "agent" if label == "spk_0" else "client"
+
+
 @logger.inject_lambda_context(log_event=True, correlation_id_path="requestContext.requestId")
 @tracer.capture_lambda_handler(capture_response=True)
 @metrics.log_metrics(capture_cold_start_metric=True)
