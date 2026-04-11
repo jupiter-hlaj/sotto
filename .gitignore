@@ -22,3 +22,4 @@ frontend/extension/dist/
 # Secrets / env
 .env
 *.env.local
+dubberkeys.txt
